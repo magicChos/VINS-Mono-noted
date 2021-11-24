@@ -50,8 +50,11 @@ class FeatureTracker
     cv::Mat fisheye_mask;
     cv::Mat prev_img, cur_img, forw_img;
     vector<cv::Point2f> n_pts;
+    // 像素坐标
     vector<cv::Point2f> prev_pts, cur_pts, forw_pts;
+    // 记录去畸变的归一化相机坐标
     vector<cv::Point2f> prev_un_pts, cur_un_pts;
+    // 归一化坐标下的速度
     vector<cv::Point2f> pts_velocity;
     vector<int> ids;
     vector<int> track_cnt;
