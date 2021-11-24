@@ -12,7 +12,6 @@
 #include "parameters.h"
 #include "utility/visualization.h"
 
-
 Estimator estimator;
 
 std::condition_variable con;
@@ -41,8 +40,8 @@ double last_imu_t = 0;
 
 /**
  * @brief 根据当前imu数据预测当前位姿
- * 
- * @param[in] imu_msg 
+ *
+ * @param[in] imu_msg
  */
 void predict(const sensor_msgs::ImuConstPtr &imu_msg)
 {
@@ -97,11 +96,10 @@ void update()
     acc_0 = estimator.acc_0;
     gyr_0 = estimator.gyr_0;
 
-    queue<sensor_msgs::ImuConstPtr> tmp_imu_buf = imu_buf;  // 遗留的imu的buffer，因为下面需要pop，所以copy了一份
+    queue<sensor_msgs::ImuConstPtr> tmp_imu_buf = imu_buf; // 遗留的imu的buffer，因为下面需要pop，所以copy了一份
     for (sensor_msgs::ImuConstPtr tmp_imu_msg; !tmp_imu_buf.empty(); tmp_imu_buf.pop())
         // 得到最新imu时刻的可靠的位姿
         predict(tmp_imu_buf.front());
-
 }
 
 // 获得匹配好的图像imu组
@@ -119,7 +117,7 @@ getMeasurements()
         // 这就是imu还没来
         if (!(imu_buf.back()->header.stamp.toSec() > feature_buf.front()->header.stamp.toSec() + estimator.td))
         {
-            //ROS_WARN("wait for imu, only should happen at the beginning");
+            // ROS_WARN("wait for imu, only should happen at the beginning");
             sum_of_wait++;
             return measurements;
         }
@@ -153,11 +151,10 @@ getMeasurements()
     return measurements;
 }
 
-
 /**
  * @brief imu消息存进buffer，同时按照imu频率预测位姿并发送，这样就可以提高里程计频率
- * 
- * @param[in] imu_msg 
+ *
+ * @param[in] imu_msg
  */
 void imu_callback(const sensor_msgs::ImuConstPtr &imu_msg)
 {
@@ -173,7 +170,7 @@ void imu_callback(const sensor_msgs::ImuConstPtr &imu_msg)
     m_buf.unlock();
     con.notify_one();
 
-    last_imu_t = imu_msg->header.stamp.toSec();
+    // last_imu_t = imu_msg->header.stamp.toSec();
 
     {
         std::lock_guard<std::mutex> lg(m_state);
@@ -188,14 +185,14 @@ void imu_callback(const sensor_msgs::ImuConstPtr &imu_msg)
 
 /**
  * @brief 将前端信息送进buffer
- * 
- * @param[in] feature_msg 
+ *
+ * @param[in] feature_msg
  */
 void feature_callback(const sensor_msgs::PointCloudConstPtr &feature_msg)
 {
     if (!init_feature)
     {
-        //skip the first detected feature, which doesn't contain optical flow speed
+        // skip the first detected feature, which doesn't contain optical flow speed
         init_feature = 1;
         return;
     }
@@ -207,8 +204,8 @@ void feature_callback(const sensor_msgs::PointCloudConstPtr &feature_msg)
 
 /**
  * @brief 将vins估计器复位
- * 
- * @param[in] restart_msg 
+ *
+ * @param[in] restart_msg
  */
 
 void restart_callback(const std_msgs::BoolConstPtr &restart_msg)
@@ -217,9 +214,9 @@ void restart_callback(const std_msgs::BoolConstPtr &restart_msg)
     {
         ROS_WARN("restart the estimator!");
         m_buf.lock();
-        while(!feature_buf.empty())
+        while (!feature_buf.empty())
             feature_buf.pop();
-        while(!imu_buf.empty())
+        while (!imu_buf.empty())
             imu_buf.pop();
         m_buf.unlock();
         m_estimator.lock();
@@ -234,7 +231,7 @@ void restart_callback(const std_msgs::BoolConstPtr &restart_msg)
 
 void relocalization_callback(const sensor_msgs::PointCloudConstPtr &points_msg)
 {
-    //printf("relocalization callback! \n");
+    // printf("relocalization callback! \n");
     m_buf.lock();
     relo_buf.push(points_msg);
     m_buf.unlock();
@@ -243,15 +240,13 @@ void relocalization_callback(const sensor_msgs::PointCloudConstPtr &points_msg)
 // thread: visual-inertial odometry
 void process()
 {
-    while (true)    // 这个线程是会一直循环下去
+    while (true) // 这个线程是会一直循环下去
     {
         std::vector<std::pair<std::vector<sensor_msgs::ImuConstPtr>, sensor_msgs::PointCloudConstPtr>> measurements;
         std::unique_lock<std::mutex> lk(m_buf);
         con.wait(lk, [&]
-                 {
-            return (measurements = getMeasurements()).size() != 0;
-                 });
-        lk.unlock();    // 数据buffer的锁解锁，回调可以继续塞数据了
+                 { return (measurements = getMeasurements()).size() != 0; });
+        lk.unlock();        // 数据buffer的锁解锁，回调可以继续塞数据了
         m_estimator.lock(); // 进行后端求解，不能和复位重启冲突
         // 给予范围的for循环，这里就是遍历每组image imu组合
         for (auto &measurement : measurements)
@@ -261,12 +256,14 @@ void process()
             // 遍历imu
             for (auto &imu_msg : measurement.first)
             {
+                // 当前imu时间戳
                 double t = imu_msg->header.stamp.toSec();
                 double img_t = img_msg->header.stamp.toSec() + estimator.td;
                 if (t <= img_t)
-                { 
+                {
                     if (current_time < 0)
                         current_time = t;
+                    // 前后两帧imu时间差
                     double dt = t - current_time;
                     ROS_ASSERT(dt >= 0);
                     current_time = t;
@@ -278,10 +275,8 @@ void process()
                     rz = imu_msg->angular_velocity.z;
                     // 时间差和imu数据送进去
                     estimator.processIMU(dt, Vector3d(dx, dy, dz), Vector3d(rx, ry, rz));
-                    //printf("imu: dt:%f a: %f %f %f w: %f %f %f\n",dt, dx, dy, dz, rx, ry, rz);
-
                 }
-                else    // 这就是针对最后一个imu数据，需要做一个简单的线性插值
+                else // 这就是针对最后一个imu数据，需要做一个简单的线性插值
                 {
                     double dt_1 = img_t - current_time;
                     double dt_2 = t - img_t;
@@ -298,21 +293,21 @@ void process()
                     ry = w1 * ry + w2 * imu_msg->angular_velocity.y;
                     rz = w1 * rz + w2 * imu_msg->angular_velocity.z;
                     estimator.processIMU(dt_1, Vector3d(dx, dy, dz), Vector3d(rx, ry, rz));
-                    //printf("dimu: dt:%f a: %f %f %f w: %f %f %f\n",dt_1, dx, dy, dz, rx, ry, rz);
+                    // printf("dimu: dt:%f a: %f %f %f w: %f %f %f\n",dt_1, dx, dy, dz, rx, ry, rz);
                 }
             }
             // set relocalization frame
             // 回环相关部分
             sensor_msgs::PointCloudConstPtr relo_msg = NULL;
-            while (!relo_buf.empty())   // 取出最新的回环帧
+            while (!relo_buf.empty()) // 取出最新的回环帧
             {
                 relo_msg = relo_buf.front();
                 relo_buf.pop();
             }
-            if (relo_msg != NULL)   // 有效回环信息
+            if (relo_msg != NULL) // 有效回环信息
             {
                 vector<Vector3d> match_points;
-                double frame_stamp = relo_msg->header.stamp.toSec();    // 回环的当前帧时间戳
+                double frame_stamp = relo_msg->header.stamp.toSec(); // 回环的当前帧时间戳
                 for (unsigned int i = 0; i < relo_msg->points.size(); i++)
                 {
                     Vector3d u_v_id;
@@ -340,17 +335,17 @@ void process()
                 int v = img_msg->channels[0].values[i] + 0.5;
                 int feature_id = v / NUM_OF_CAM;
                 int camera_id = v % NUM_OF_CAM;
-                double x = img_msg->points[i].x;    // 去畸变后归一滑像素坐标
+                double x = img_msg->points[i].x; // 去畸变后归一滑像素坐标
                 double y = img_msg->points[i].y;
                 double z = img_msg->points[i].z;
-                double p_u = img_msg->channels[1].values[i];    // 特征点像素坐标
+                double p_u = img_msg->channels[1].values[i]; // 特征点像素坐标
                 double p_v = img_msg->channels[2].values[i];
                 double velocity_x = img_msg->channels[3].values[i]; // 特征点速度
                 double velocity_y = img_msg->channels[4].values[i];
                 ROS_ASSERT(z == 1); // 检查是不是归一化
                 Eigen::Matrix<double, 7, 1> xyz_uv_velocity;
                 xyz_uv_velocity << x, y, z, p_u, p_v, velocity_x, velocity_y;
-                image[feature_id].emplace_back(camera_id,  xyz_uv_velocity);
+                image[feature_id].emplace_back(camera_id, xyz_uv_velocity);
             }
             estimator.processImage(image, img_msg->header);
 
@@ -368,7 +363,7 @@ void process()
             pubKeyframe(estimator);
             if (relo_msg != NULL)
                 pubRelocalization(estimator);
-            //ROS_ERROR("end: %f, at %f", img_msg->header.stamp.toSec(), ros::Time::now().toSec());
+            // ROS_ERROR("end: %f, at %f", img_msg->header.stamp.toSec(), ros::Time::now().toSec());
         }
         m_estimator.unlock();
         m_buf.lock();
