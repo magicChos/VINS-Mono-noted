@@ -36,6 +36,8 @@ Eigen::Vector3d acc_0;
 Eigen::Vector3d gyr_0;
 bool init_feature = 0;
 bool init_imu = 1;
+
+// 记录上一帧imu数据时间
 double last_imu_t = 0;
 
 /**
@@ -252,6 +254,7 @@ void process()
         for (auto &measurement : measurements)
         {
             auto img_msg = measurement.second;
+            // dx,dy,dz：imu加速度，rx,ry,rz：imu角速度
             double dx = 0, dy = 0, dz = 0, rx = 0, ry = 0, rz = 0;
             // 遍历imu
             for (auto &imu_msg : measurement.first)
@@ -329,6 +332,10 @@ void process()
 
             TicToc t_s;
             // 特征点id->特征点信息
+            // 表示当前帧跟踪到上一帧中的特征点集合，也就是当前帧观测到的所有的路标点（不包括在当前帧新提取的点）
+            // map int: feature Id
+            // pair int: camera Id
+            // pair value 7: x,y,z,u,v,ux,vx
             map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> image;
             for (unsigned int i = 0; i < img_msg->points.size(); i++)
             {
@@ -382,6 +389,7 @@ int main(int argc, char **argv)
     ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Info);
     readParameters(n);
     estimator.setParameter();
+    // 关闭eigen的多线程
 #ifdef EIGEN_DONT_PARALLELIZE
     ROS_DEBUG("EIGEN_DONT_PARALLELIZE");
 #endif
