@@ -30,6 +30,7 @@ bool ProjectionFactor::Evaluate(double const *const *parameters, double *residua
     Eigen::Vector3d tic(parameters[2][0], parameters[2][1], parameters[2][2]);
     Eigen::Quaterniond qic(parameters[2][6], parameters[2][3], parameters[2][4], parameters[2][5]);
 
+    // 逆深度
     double inv_dep_i = parameters[3][0];
     // 地图点在i帧相机坐标系下坐标
     Eigen::Vector3d pts_camera_i = pts_i / inv_dep_i;
@@ -44,6 +45,7 @@ bool ProjectionFactor::Evaluate(double const *const *parameters, double *residua
     Eigen::Map<Eigen::Vector2d> residual(residuals);
 
 #ifdef UNIT_SPHERE_ERROR 
+    // 把归一化平面上的重投影误差投影到unit sphere上的好处就是支持所有类型的相机，求取切平面上的误差
     residual =  tangent_base * (pts_camera_j.normalized() - pts_j.normalized());
 #else
     double dep_j = pts_camera_j.z();    // 第j帧相机系下深度
@@ -70,6 +72,7 @@ bool ProjectionFactor::Evaluate(double const *const *parameters, double *residua
                      - x1 * x3 / pow(norm, 3),            - x2 * x3 / pow(norm, 3),            1.0 / norm - x3 * x3 / pow(norm, 3);
         reduce = tangent_base * norm_jaco;
 #else
+        // 公式（70）
         reduce << 1. / dep_j, 0, -pts_camera_j(0) / (dep_j * dep_j),    // 重投影误差对j帧相机坐标系下坐标求导
             0, 1. / dep_j, -pts_camera_j(1) / (dep_j * dep_j);
 #endif

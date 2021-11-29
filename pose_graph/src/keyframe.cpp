@@ -103,6 +103,7 @@ KeyFrame::KeyFrame(double _time_stamp, int _index, Vector3d &_vio_T_w_i, Matrix3
 
 /**
  * @brief 计算已有特征点的描述子
+ * 70个点的描述
  * 
  */
 void KeyFrame::computeWindowBRIEFPoint()
@@ -119,6 +120,7 @@ void KeyFrame::computeWindowBRIEFPoint()
 }
 
 // 额外提取fast特征点并计算描述子
+// 新的500个点
 void KeyFrame::computeBRIEFPoint()
 {
 	BriefExtractor extractor(BRIEF_PATTERN_FILE.c_str());

@@ -1,6 +1,7 @@
 #include "initial_ex_rotation.h"
 
-InitialEXRotation::InitialEXRotation(){
+InitialEXRotation::InitialEXRotation()
+{
     frame_count = 0;
     Rc.push_back(Matrix3d::Identity());
     Rc_g.push_back(Matrix3d::Identity());
@@ -9,14 +10,16 @@ InitialEXRotation::InitialEXRotation(){
 }
 
 // 标定imu和相机之间的旋转外参，通过imu和图像计算的旋转使用手眼标定计算获得
-bool InitialEXRotation::CalibrationExRotation(vector<pair<Vector3d, Vector3d>> corres, Quaterniond delta_q_imu, Matrix3d &calib_ric_result)
+bool InitialEXRotation::CalibrationExRotation(vector<pair<Vector3d, Vector3d>> corres,
+                                              Quaterniond delta_q_imu,
+                                              Matrix3d &calib_ric_result)
 {
     frame_count++;
     // 根据特征关联求解两个连续帧相机的旋转R12
     Rc.push_back(solveRelativeR(corres));
     Rimu.push_back(delta_q_imu.toRotationMatrix());
     // 通过外参把imu的旋转转移到相机坐标系
-    Rc_g.push_back(ric.inverse() * delta_q_imu * ric);  // ric是上一次求解得到的外参
+    Rc_g.push_back(ric.inverse() * delta_q_imu * ric); // ric是上一次求解得到的外参
 
     Eigen::MatrixXd A(frame_count * 4, 4);
     A.setZero();
@@ -49,15 +52,15 @@ bool InitialEXRotation::CalibrationExRotation(vector<pair<Vector3d, Vector3d>> c
         R.block<1, 3>(3, 0) = -q.transpose();
         R(3, 3) = w;
 
-        A.block<4, 4>((i - 1) * 4, 0) = huber * (L - R);    // 作用在残差上面
+        A.block<4, 4>((i - 1) * 4, 0) = huber * (L - R); // 作用在残差上面
     }
 
     JacobiSVD<MatrixXd> svd(A, ComputeFullU | ComputeFullV);
     Matrix<double, 4, 1> x = svd.matrixV().col(3);
     Quaterniond estimated_R(x);
     ric = estimated_R.toRotationMatrix().inverse();
-    //cout << svd.singularValues().transpose() << endl;
-    //cout << ric << endl;
+    // cout << svd.singularValues().transpose() << endl;
+    // cout << ric << endl;
     Vector3d ric_cov;
     ric_cov = svd.singularValues().tail<3>();
     // 倒数第二个奇异值，因为旋转是3个自由度，因此检查一下第三小的奇异值是否足够大，通常需要足够的运动激励才能保证得到没有奇异的解
@@ -108,16 +111,16 @@ Matrix3d InitialEXRotation::solveRelativeR(const vector<pair<Vector3d, Vector3d>
 
 /**
  * @brief 通过三角化来检查R t是否合理
- * 
+ *
  * @param[in] l l相机的观测
  * @param[in] r r相机的观测
  * @param[in] R 旋转矩阵
  * @param[in] t 位移
- * @return double 
+ * @return double
  */
 double InitialEXRotation::testTriangulation(const vector<cv::Point2f> &l,
-                                          const vector<cv::Point2f> &r,
-                                          cv::Mat_<double> R, cv::Mat_<double> t)
+                                            const vector<cv::Point2f> &r,
+                                            cv::Mat_<double> R, cv::Mat_<double> t)
 {
     cv::Mat pointcloud;
     // 其中一帧设置为单位阵
@@ -148,8 +151,8 @@ double InitialEXRotation::testTriangulation(const vector<cv::Point2f> &l,
 
 // 具体解法参考多视角几何
 void InitialEXRotation::decomposeE(cv::Mat E,
-                                 cv::Mat_<double> &R1, cv::Mat_<double> &R2,
-                                 cv::Mat_<double> &t1, cv::Mat_<double> &t2)
+                                   cv::Mat_<double> &R1, cv::Mat_<double> &R2,
+                                   cv::Mat_<double> &t1, cv::Mat_<double> &t2)
 {
     cv::SVD svd(E, cv::SVD::MODIFY_A);
     cv::Matx33d W(0, -1, 0,

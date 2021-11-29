@@ -15,6 +15,7 @@ using namespace Eigen;
 
 #include "parameters.h"
 
+// 每个路标点在一张图像中的信息
 class FeaturePerFrame
 {
   public:
@@ -41,6 +42,7 @@ class FeaturePerFrame
     double dep_gradient;
 };
 
+// 每个路标点由多个连续的图像观测到
 class FeaturePerId
 {
   public:
@@ -90,6 +92,7 @@ class FeatureManager
     void removeBack();
     void removeFront(int frame_count);
     void removeOutlier();
+    // 滑窗内所有路标点
     list<FeaturePerId> feature;
     int last_track_num;
 

@@ -13,6 +13,7 @@ using namespace std;
 
 
 
+// 每个路标点由多个连续的图像观测到
 struct SFMFeature
 {
     bool state;

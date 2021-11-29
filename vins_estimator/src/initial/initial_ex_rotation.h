@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 
 #include <vector>
 #include "../parameters.h"
@@ -14,10 +14,13 @@ using namespace Eigen;
 class InitialEXRotation
 {
 public:
-	InitialEXRotation();
-    bool CalibrationExRotation(vector<pair<Vector3d, Vector3d>> corres, Quaterniond delta_q_imu, Matrix3d &calib_ric_result);
+    InitialEXRotation();
+    bool CalibrationExRotation(vector<pair<Vector3d, Vector3d>> corres,
+                               Quaterniond delta_q_imu,
+                               Matrix3d &calib_ric_result);
+
 private:
-	Matrix3d solveRelativeR(const vector<pair<Vector3d, Vector3d>> &corres);
+    Matrix3d solveRelativeR(const vector<pair<Vector3d, Vector3d>> &corres);
 
     double testTriangulation(const vector<cv::Point2f> &l,
                              const vector<cv::Point2f> &r,
@@ -27,10 +30,8 @@ private:
                     cv::Mat_<double> &t1, cv::Mat_<double> &t2);
     int frame_count;
 
-    vector< Matrix3d > Rc;
-    vector< Matrix3d > Rimu;
-    vector< Matrix3d > Rc_g;
+    vector<Matrix3d> Rc;
+    vector<Matrix3d> Rimu;
+    vector<Matrix3d> Rc_g;
     Matrix3d ric;
 };
-
-
