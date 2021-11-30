@@ -117,6 +117,7 @@ void Estimator::processIMU(double dt, const Vector3d &linear_acceleration, const
         dt_buf[frame_count].push_back(dt);
         linear_acceleration_buf[frame_count].push_back(linear_acceleration);
         angular_velocity_buf[frame_count].push_back(angular_velocity);
+
         // 又是一个中值积分，更新滑窗中状态量，本质是给非线性优化提供可信的初始值
         int j = frame_count;
         Vector3d un_acc_0 = Rs[j] * (acc_0 - Bas[j]) - g;
@@ -127,6 +128,8 @@ void Estimator::processIMU(double dt, const Vector3d &linear_acceleration, const
         Ps[j] += dt * Vs[j] + 0.5 * dt * dt * un_acc;
         Vs[j] += dt * un_acc;
     }
+
+    // 当frame_count==0的时候表示滑动窗口中还没有图像帧数据，不需要进行预积分，只进行线加速度和角速度初始值的更新
     acc_0 = linear_acceleration;
     gyr_0 = angular_velocity;
 }
@@ -150,7 +153,8 @@ void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<doubl
     Headers[frame_count] = header;
 
     // all_image_frame用来做初始化相关操作，他保留滑窗起始到当前的所有帧
-    // 有一些帧会因为不是KF，被MARGIN_SECOND_NEW，但是及时较新的帧被margin，他也会保留在这个容器中，因为初始化要求使用所有的帧，而非只要KF
+    // 有一些帧会因为不是KF，被MARGIN_SECOND_NEW，但是及时较新的帧被margin，
+    // 他也会保留在这个容器中，因为初始化要求使用所有的帧，而非只要KF
     ImageFrame imageframe(image, header.stamp.toSec());
     imageframe.pre_integration = tmp_pre_integration;
     // 这里就是简单的把图像和预积分绑定在一起，这里预积分就是两帧之间的，滑窗中实际上是两个KF之间的
@@ -167,6 +171,8 @@ void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<doubl
         {
             // 这里标定imu和相机的旋转外参的初值
             // 因为预积分是相邻帧的约束，因为这里得到的图像关联也是相邻的
+
+            // 得到相邻两帧的特征点
             vector<pair<Vector3d, Vector3d>> corres = f_manager.getCorresponding(frame_count - 1, frame_count);
             Matrix3d calib_ric;
             if (initial_ex_rotation.CalibrationExRotation(corres, pre_integrations[frame_count]->delta_q, calib_ric))
@@ -254,7 +260,6 @@ void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<doubl
 
 /**
  * @brief VIO初始化，将滑窗中的P V Q恢复到第0帧并且和重力对齐
- * 
  * @return true 
  * @return false 
  */
@@ -333,6 +338,7 @@ bool Estimator::initialStructure()
         ROS_INFO("Not enough features or parallax; Move device around");
         return false;
     }
+    
     GlobalSFM sfm;
     // 进行sfm的求解
     // 求解窗口中所有图像帧的位姿QT(相对第l帧)
@@ -537,9 +543,9 @@ bool Estimator::visualInitialAlign()
 
 /**
  * @brief 该函数判断每帧到窗口最后一帧对应特征点的平均视差大于30，且内点数目大于12则可进行初始化
- * @param[in] relative_R 返回当前帧到第l帧的坐标变换
- * @param[in] relative_T 
- * @param[in] l 
+ * @param[out] relative_R 返回当前帧到第l帧的坐标变换
+ * @param[out] relative_T 
+ * @param[out] l 输出符合要求的帧
  * @return true 
  * @return false 
  */

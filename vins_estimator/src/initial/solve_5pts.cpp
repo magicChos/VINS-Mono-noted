@@ -191,10 +191,9 @@ namespace cv {
 
 /**
  * @brief 根据两帧匹配对求解R和带尺度的t
- * 
  * @param[in] corres 
- * @param[in] Rotation 
- * @param[in] Translation 
+ * @param[out] Rotation 
+ * @param[out] Translation 
  * @return true 
  * @return false 
  */

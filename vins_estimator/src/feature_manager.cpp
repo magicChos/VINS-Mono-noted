@@ -142,7 +142,6 @@ void FeatureManager::debugShow()
  * @param[in] frame_count_r 
  * @return vector<pair<Vector3d, Vector3d>> 
  */
-
 vector<pair<Vector3d, Vector3d>> FeatureManager::getCorresponding(int frame_count_l, int frame_count_r)
 {
     vector<pair<Vector3d, Vector3d>> corres;

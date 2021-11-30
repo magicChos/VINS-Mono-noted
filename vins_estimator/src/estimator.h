@@ -102,7 +102,7 @@ public:
     Matrix3d Rs[(WINDOW_SIZE + 1)];
     Vector3d Bas[(WINDOW_SIZE + 1)];
     Vector3d Bgs[(WINDOW_SIZE + 1)];
-    
+
     // ?
     double td;
 
@@ -146,7 +146,10 @@ public:
     MarginalizationInfo *last_marginalization_info;
     vector<double *> last_marginalization_parameter_blocks;
 
+    // key:image的时间戳
     map<double, ImageFrame> all_image_frame;
+
+    // 用来坐初始化用的
     IntegrationBase *tmp_pre_integration;
 
     //relocalization variable

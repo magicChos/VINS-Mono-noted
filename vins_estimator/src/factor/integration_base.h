@@ -68,12 +68,12 @@ public:
      * _gyr_0：ti时刻陀螺仪加速度
      * _gyr_1：t_i+1时刻陀螺仪加速度
      * delta_p：位移
-     * delta_q：相对变换
+     * delta_q：相对变换，代指公式中的q_k
      * delta_v：速度
      * linearized_ba：加速度偏置
      * linearized_bg：重力加速度
      * result_delta_p：输出更新后的位移
-     * result_delta_q：输出更新后的变换
+     * result_delta_q：输出更新后的变换，代指q_k+1
      * result_delta_v：更新后的速度
      * */
     void midPointIntegration(double _dt,
@@ -85,7 +85,7 @@ public:
                              Eigen::Vector3d &result_linearized_ba, Eigen::Vector3d &result_linearized_bg, bool update_jacobian)
     {
         //ROS_INFO("midpoint integration");
-        // 首先中值积分更新状态量
+        // 首先中值积分更新状态量，公式推导（7）
         //  ^
         // a_i = delta_q(a_i -b_ai - n_ai)  这里没有考虑噪声所以n_ai = 0
         Vector3d un_acc_0 = delta_q * (_acc_0 - linearized_ba);
@@ -99,8 +99,11 @@ public:
 
         result_delta_p = delta_p + delta_v * _dt + 0.5 * un_acc * _dt * _dt;
         result_delta_v = delta_v + un_acc * _dt;
+
+        // 预积分过程中bias没有发生改变
         result_linearized_ba = linearized_ba;
         result_linearized_bg = linearized_bg;
+
         // 随后更新方差矩阵及雅克比
         if (update_jacobian)
         {
@@ -113,9 +116,13 @@ public:
             R_w_x << 0, -w_x(2), w_x(1),
                 w_x(2), 0, -w_x(0),
                 -w_x(1), w_x(0), 0;
+            
+            // 加速度a_k三维向量构成的反对称矩阵
             R_a_0_x << 0, -a_0_x(2), a_0_x(1),
                 a_0_x(2), 0, -a_0_x(0),
                 -a_0_x(1), a_0_x(0), 0;
+
+            // 加速度a_k+1三维向量构成的反对称矩阵
             R_a_1_x << 0, -a_1_x(2), a_1_x(1),
                 a_1_x(2), 0, -a_1_x(0),
                 -a_1_x(1), a_1_x(0), 0;

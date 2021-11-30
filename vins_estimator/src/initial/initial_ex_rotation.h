@@ -15,6 +15,15 @@ class InitialEXRotation
 {
 public:
     InitialEXRotation();
+
+    /**
+     * @brief 标定外参
+     * @param [in] corres 相邻两帧对应的特征点
+     * @param [in] delta_q_imu 
+     * @param [out] calib_ric_result 输出相机和imu旋转矩阵
+     * @return true 
+     * @return false 
+     */
     bool CalibrationExRotation(vector<pair<Vector3d, Vector3d>> corres,
                                Quaterniond delta_q_imu,
                                Matrix3d &calib_ric_result);

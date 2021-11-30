@@ -76,6 +76,6 @@ private:
 	void triangulateTwoFrames(int frame0, Eigen::Matrix<double, 3, 4> &Pose0, 
 							  int frame1, Eigen::Matrix<double, 3, 4> &Pose1,
 							  vector<SFMFeature> &sfm_f);
-
+	// 构造sfm时初始化赋值
 	int feature_num;
 };
