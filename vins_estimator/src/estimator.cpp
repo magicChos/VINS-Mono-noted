@@ -88,7 +88,6 @@ void Estimator::clearState()
 
 /**
  * @brief 对imu数据进行处理，包括更新预积分量，和提供优化状态量的初始值
- * 
  * @param[in] dt 
  * @param[in] linear_acceleration 
  * @param[in] angular_velocity 
