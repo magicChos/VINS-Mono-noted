@@ -198,7 +198,6 @@ namespace cv {
  * @return true 
  * @return false 
  */
-
 bool MotionEstimator::solveRelativeRT(const vector<pair<Vector3d, Vector3d>> &corres, Matrix3d &Rotation, Vector3d &Translation)
 {
     if (corres.size() >= 15)

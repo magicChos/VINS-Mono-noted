@@ -57,6 +57,8 @@ class FeatureTracker
     // 为当前帧相对前一帧特征点沿x,y方向的像素移动速度
     vector<cv::Point2f> pts_velocity;
     vector<int> ids;
+
+    // 记录特征点被跟踪的次数
     vector<int> track_cnt;
     map<int, cv::Point2f> cur_un_pts_map;
     map<int, cv::Point2f> prev_un_pts_map;

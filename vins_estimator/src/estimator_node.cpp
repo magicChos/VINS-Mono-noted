@@ -15,6 +15,7 @@
 Estimator estimator;
 
 std::condition_variable con;
+// 好像是记录上一帧Imu的时间戳
 double current_time = -1;
 queue<sensor_msgs::ImuConstPtr> imu_buf;
 queue<sensor_msgs::PointCloudConstPtr> feature_buf;
@@ -27,12 +28,17 @@ std::mutex i_buf;
 std::mutex m_estimator;
 
 double latest_time;
+// 临时变量记录当前imu的PVQ
 Eigen::Vector3d tmp_P;
+// 记录当前时刻到世界坐标系下的旋转矩阵
 Eigen::Quaterniond tmp_Q;
 Eigen::Vector3d tmp_V;
 Eigen::Vector3d tmp_Ba;
+// 记录当前陀螺仪的偏置
 Eigen::Vector3d tmp_Bg;
 Eigen::Vector3d acc_0;
+
+// 上一时刻陀螺仪角速度
 Eigen::Vector3d gyr_0;
 bool init_feature = 0;
 bool init_imu = 1;
@@ -66,6 +72,8 @@ void predict(const sensor_msgs::ImuConstPtr &imu_msg)
     double rx = imu_msg->angular_velocity.x;
     double ry = imu_msg->angular_velocity.y;
     double rz = imu_msg->angular_velocity.z;
+
+    // 当前时刻的陀螺仪角速度
     Eigen::Vector3d angular_velocity{rx, ry, rz};
     // 上一时刻世界坐标系下加速度值
     Eigen::Vector3d un_acc_0 = tmp_Q * (acc_0 - tmp_Ba) - estimator.g;
@@ -85,6 +93,8 @@ void predict(const sensor_msgs::ImuConstPtr &imu_msg)
     acc_0 = linear_acceleration;
     gyr_0 = angular_velocity;
 }
+
+// 得到窗口最后一个图像帧的imu项[P,Q,V,ba,bg,a,g]，对imu_buf中剩余imu_msg进行PVQ递推
 // 用最新VIO结果更新最新imu对应的位姿
 void update()
 {
@@ -244,6 +254,7 @@ void process()
 {
     while (true) // 这个线程是会一直循环下去
     {
+        // pair中记录的是imu数据和对应的特征点数据
         std::vector<std::pair<std::vector<sensor_msgs::ImuConstPtr>, sensor_msgs::PointCloudConstPtr>> measurements;
         std::unique_lock<std::mutex> lk(m_buf);
         con.wait(lk, [&]
@@ -261,6 +272,7 @@ void process()
             {
                 // 当前imu时间戳
                 double t = imu_msg->header.stamp.toSec();
+                // 当前图片的时间戳
                 double img_t = img_msg->header.stamp.toSec() + estimator.td;
                 if (t <= img_t)
                 {
@@ -301,8 +313,10 @@ void process()
             }
             // set relocalization frame
             // 回环相关部分
+
+            // 记录用于重定位的特征点信息
             sensor_msgs::PointCloudConstPtr relo_msg = NULL;
-            while (!relo_buf.empty()) // 取出最新的回环帧
+            while (!relo_buf.empty()) // 取出最新的回环帧，也就是队列的最后一个元素
             {
                 relo_msg = relo_buf.front();
                 relo_buf.pop();

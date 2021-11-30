@@ -7,6 +7,7 @@ std::string FISHEYE_MASK;
 int MAX_CNT;
 int MIN_DIST;
 int WINDOW_SIZE;
+// 记录发送频率
 int FREQ;
 double F_THRESHOLD;
 int SHOW_TRACK;
@@ -16,6 +17,8 @@ int ROW;
 int COL;
 int FOCAL_LENGTH;
 int FISHEYE;
+
+// 是否发送此帧的标记
 bool PUB_THIS_FRAME;
 
 template <typename T>

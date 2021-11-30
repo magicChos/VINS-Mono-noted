@@ -192,11 +192,14 @@ void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<doubl
             // Step 3： VIO初始化
             if (ESTIMATE_EXTRINSIC != 2 && (header.stamp.toSec() - initial_timestamp) > 0.1)
             {
+                // 视觉惯性联合初始化
                 result = initialStructure();
                 initial_timestamp = header.stamp.toSec();
             }
+            // 初始化成功
             if (result)
             {
+                // 先进行一次滑动窗口非线性化，得到当前帧与第一帧的位姿
                 solver_flag = NON_LINEAR;
                 // Step 4： 非线性优化求解VIO
                 solveOdometry();
@@ -211,7 +214,7 @@ void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<doubl
                 last_P0 = Ps[0];
             }
             else
-                slideWindow();
+                slideWindow(); // 初始化失败直接滑动窗口
         }
         else
             frame_count++;
@@ -294,10 +297,16 @@ bool Estimator::initialStructure()
     }
     // Step 2 global sfm
     // 做一个纯视觉slam
+
+    // 记录所有图像帧相对于参考帧的旋转四元素和平移量
     Quaterniond Q[frame_count + 1];
     Vector3d T[frame_count + 1];
+
+    // 特征点坐标
     map<int, Vector3d> sfm_tracked_points;
-    vector<SFMFeature> sfm_f; // 保存每个特征点的信息
+    
+    // 保存每个特征点的信息
+    vector<SFMFeature> sfm_f; 
     // 遍历所有的特征点
     for (auto &it_per_id : f_manager.feature)
     {
@@ -314,6 +323,9 @@ bool Estimator::initialStructure()
         }
         sfm_f.push_back(tmp_feature);
     }
+    
+    // 这里的第L帧是从第一帧开始到滑动窗口中第一个满足与当前帧的平均视差足够大的帧
+    // 当前帧到第L帧的坐标变换
     Matrix3d relative_R;
     Vector3d relative_T;
     int l;
@@ -324,11 +336,13 @@ bool Estimator::initialStructure()
     }
     GlobalSFM sfm;
     // 进行sfm的求解
+    // 求解窗口中所有图像帧的位姿QT(相对第l帧)
     if (!sfm.construct(frame_count + 1, Q, T, l,
                        relative_R, relative_T,
                        sfm_f, sfm_tracked_points))
     {
         ROS_DEBUG("global SFM failed!");
+        // 求解失败则边缘化最早一帧并滑动窗口
         marginalization_flag = MARGIN_OLD;
         return false;
     }
@@ -361,6 +375,7 @@ bool Estimator::initialStructure()
         Vector3d P_inital = -R_inital * T[i];
         // eigen -> cv
         cv::eigen2cv(R_inital, tmp_r);
+        // 罗德里格斯公式将旋转矩阵转为旋转向量
         cv::Rodrigues(tmp_r, rvec);
         cv::eigen2cv(P_inital, t);
 
@@ -437,6 +452,7 @@ bool Estimator::visualInitialAlign()
 
     // change state
     // 首先把对齐后KF的位姿附给滑窗中的值，Rwi twc
+    // 获取所有图像帧的位姿，并将其设为关键帧
     for (int i = 0; i <= frame_count; i++)
     {
         Matrix3d Ri = all_image_frame[Headers[i].stamp.toSec()].R;
@@ -446,6 +462,8 @@ bool Estimator::visualInitialAlign()
         all_image_frame[Headers[i].stamp.toSec()].is_key_frame = true;
     }
 
+    //--------------------------------start--------------------------------
+    // 重新计算所有特征点的深度
     VectorXd dep = f_manager.getDepthVector(); // 根据有效特征点数初始化这个动态向量
     for (int i = 0; i < dep.size(); i++)
         dep[i] = -1;           // 深度预设都是-1
@@ -460,12 +478,18 @@ bool Estimator::visualInitialAlign()
     // 多约束三角化所有的特征点，注意，仍带是尺度模糊的
     f_manager.triangulate(Ps, &(TIC_TMP[0]), &(RIC[0]));
 
+    //-------------------------------end---------------------------------
+
     double s = (x.tail<1>())(0);
+    // 陀螺仪偏置bgs改变，重新计算预积分
     // 将滑窗中的预积分重新计算
     for (int i = 0; i <= WINDOW_SIZE; i++)
     {
         pre_integrations[i]->repropagate(Vector3d::Zero(), Bgs[i]);
     }
+
+    // 之前是以第l帧为基准坐标系，转换到以第b0为基准坐标系，由论文中的公式（14）得到
+    // sp_bk^b0 = sp_bk^cl - sp_b0^cl = (sp_ck^cl - R_bk^cl * p_c^b) - (sp_c0^cl - R_b0^cl * p_c^b)
     // 下面开始把所有的状态对齐到第0帧的imu坐标系
     for (int i = frame_count; i >= 0; i--)
         // twi - tw0 = toi,就是把所有的平移对齐到滑窗中的第0帧
@@ -490,12 +514,15 @@ bool Estimator::visualInitialAlign()
             continue;
         it_per_id.estimated_depth *= s;
     }
+
     // 所有的P V Q全部对齐到第0帧的，同时和对齐到重力方向
     Matrix3d R0 = Utility::g2R(g);                         // g是枢纽帧下的重力方向，得到R_w_j
     double yaw = Utility::R2ypr(R0 * Rs[0]).x();           // Rs[0]实际上是R_j_0
     R0 = Utility::ypr2R(Eigen::Vector3d{-yaw, 0, 0}) * R0; // 第一帧yaw赋0
     g = R0 * g;
     //Matrix3d rot_diff = R0 * Rs[0].transpose();
+    
+    // 世界坐标系与摄像机坐标系c0之间的旋转矩阵
     Matrix3d rot_diff = R0;
     for (int i = 0; i <= frame_count; i++)
     {
@@ -510,22 +537,20 @@ bool Estimator::visualInitialAlign()
 }
 
 /**
- * @brief 寻找滑窗内一个帧作为枢纽帧，要求和最后一帧既有足够的共视也要有足够的视差
- *        这样其他帧都对齐到这个枢纽帧上
- *        得到T_l_last
- * @param[in] relative_R 
+ * @brief 该函数判断每帧到窗口最后一帧对应特征点的平均视差大于30，且内点数目大于12则可进行初始化
+ * @param[in] relative_R 返回当前帧到第l帧的坐标变换
  * @param[in] relative_T 
  * @param[in] l 
  * @return true 
  * @return false 
  */
-
 bool Estimator::relativePose(Matrix3d &relative_R, Vector3d &relative_T, int &l)
 {
     // find previous frame which contians enough correspondance and parallex with newest frame
     // 优先从最前面开始
     for (int i = 0; i < WINDOW_SIZE; i++)
     {
+        // 记录第i帧到窗口最后一帧的对应特征点
         vector<pair<Vector3d, Vector3d>> corres;
         corres = f_manager.getCorresponding(i, WINDOW_SIZE);
         // 要求共视的特征点足够多
@@ -535,6 +560,7 @@ bool Estimator::relativePose(Matrix3d &relative_R, Vector3d &relative_T, int &l)
             double average_parallax;
             for (int j = 0; j < int(corres.size()); j++)
             {
+                // 第j个对应点在第i帧和最后一帧的（x,y）
                 Vector2d pts_0(corres[j].first(0), corres[j].first(1));
                 Vector2d pts_1(corres[j].second(0), corres[j].second(1));
                 double parallax = (pts_0 - pts_1).norm(); // 计算了视差

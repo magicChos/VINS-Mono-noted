@@ -16,10 +16,14 @@ using namespace std;
 // 每个路标点由多个连续的图像观测到
 struct SFMFeature
 {
+	// 状态，记录是否被三角化
     bool state;
     int id;
+	// 记录所有观测到该特征点的图像帧ID和图像坐标
     vector<pair<int,Vector2d>> observation;
+	// 3d坐标
     double position[3];
+	// 深度
     double depth;
 };
 

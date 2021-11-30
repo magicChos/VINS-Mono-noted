@@ -48,14 +48,12 @@ int FeatureManager::getFeatureCount()
 
 /**
  * @brief 增加特征点信息，同时检查上一帧是否时关键帧
- * 
  * @param[in] frame_count 
  * @param[in] image 
  * @param[in] td 
  * @return true 
  * @return false 
  */
-
 bool FeatureManager::addFeatureCheckParallax(int frame_count, const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image, double td)
 {
     ROS_DEBUG("input feature: %d", (int)image.size());
@@ -72,9 +70,7 @@ bool FeatureManager::addFeatureCheckParallax(int frame_count, const map<int, vec
         int feature_id = id_pts.first;
         // 在已有的id中寻找是否是有相同的特征点
         auto it = find_if(feature.begin(), feature.end(), [feature_id](const FeaturePerId &it)
-                          {
-            return it.feature_id == feature_id;
-                          });
+                          { return it.feature_id == feature_id; });
         // 这是一个新的特征点
         if (it == feature.end())
         {
@@ -86,7 +82,7 @@ bool FeatureManager::addFeatureCheckParallax(int frame_count, const map<int, vec
         else if (it->feature_id == feature_id)
         {
             it->feature_per_frame.push_back(f_per_fra);
-            last_track_num++;   // 追踪到上一帧的特征点数目
+            last_track_num++; // 追踪到上一帧的特征点数目
         }
     }
     // 前两帧都设置为KF，追踪过少也认为是KF
@@ -133,7 +129,7 @@ void FeatureManager::debugShow()
         {
             ROS_DEBUG("%d,", int(j.is_used));
             sum += j.is_used;
-            printf("(%lf,%lf) ",j.point(0), j.point(1));
+            printf("(%lf,%lf) ", j.point(0), j.point(1));
         }
         ROS_ASSERT(it.used_num == sum);
     }
@@ -163,8 +159,8 @@ vector<pair<Vector3d, Vector3d>> FeatureManager::getCorresponding(int frame_coun
             a = it.feature_per_frame[idx_l].point;
 
             b = it.feature_per_frame[idx_r].point;
-            
-            corres.push_back(make_pair(a, b));  // 返回相机坐标系下的坐标对
+
+            corres.push_back(make_pair(a, b)); // 返回相机坐标系下的坐标对
         }
     }
     return corres;
@@ -261,7 +257,7 @@ void FeatureManager::triangulate(Vector3d Ps[], Vector3d tic[], Matrix3d ric[])
         if (!(it_per_id.used_num >= 2 && it_per_id.start_frame < WINDOW_SIZE - 2))
             continue;
 
-        if (it_per_id.estimated_depth > 0)  // 代表已经三角化过了
+        if (it_per_id.estimated_depth > 0) // 代表已经三角化过了
             continue;
         int imu_i = it_per_id.start_frame, imu_j = imu_i - 1;
 
@@ -311,7 +307,6 @@ void FeatureManager::triangulate(Vector3d Ps[], Vector3d tic[], Matrix3d ric[])
         {
             it_per_id.estimated_depth = INIT_DEPTH; // 具体太近就设置成默认值
         }
-
     }
 }
 
@@ -347,27 +342,27 @@ void FeatureManager::removeBackShiftDepth(Eigen::Matrix3d marg_R, Eigen::Vector3
     {
         it_next++;
 
-        if (it->start_frame != 0)   // 如果不是被移除的帧看到，那么该地图点对应的起始帧id减一
+        if (it->start_frame != 0) // 如果不是被移除的帧看到，那么该地图点对应的起始帧id减一
             it->start_frame--;
         else
         {
-            Eigen::Vector3d uv_i = it->feature_per_frame[0].point;    // 取出归一化相机坐标系坐标
+            Eigen::Vector3d uv_i = it->feature_per_frame[0].point;      // 取出归一化相机坐标系坐标
             it->feature_per_frame.erase(it->feature_per_frame.begin()); // 该点不再被原来的第一帧看到，因此从中移除
-            if (it->feature_per_frame.size() < 2)   // 如果这个地图点没有至少被两帧看到
+            if (it->feature_per_frame.size() < 2)                       // 如果这个地图点没有至少被两帧看到
             {
-                feature.erase(it);  // 那他就没有存在的价值了
+                feature.erase(it); // 那他就没有存在的价值了
                 continue;
             }
-            else    // 进行管辖权的转交
+            else // 进行管辖权的转交
             {
-                Eigen::Vector3d pts_i = uv_i * it->estimated_depth; // 实际相机坐标系下的坐标
-                Eigen::Vector3d w_pts_i = marg_R * pts_i + marg_P;  // 转到世界坐标系下
-                Eigen::Vector3d pts_j = new_R.transpose() * (w_pts_i - new_P);  // 转到新的最老帧的相机坐标系下
+                Eigen::Vector3d pts_i = uv_i * it->estimated_depth;            // 实际相机坐标系下的坐标
+                Eigen::Vector3d w_pts_i = marg_R * pts_i + marg_P;             // 转到世界坐标系下
+                Eigen::Vector3d pts_j = new_R.transpose() * (w_pts_i - new_P); // 转到新的最老帧的相机坐标系下
                 double dep_j = pts_j(2);
-                if (dep_j > 0)  // 看看深度是否有效
-                    it->estimated_depth = dep_j;    // 有效的话就得到在现在最老帧下的深度值
+                if (dep_j > 0)                   // 看看深度是否有效
+                    it->estimated_depth = dep_j; // 有效的话就得到在现在最老帧下的深度值
                 else
-                    it->estimated_depth = INIT_DEPTH;   // 无效就设置默认值
+                    it->estimated_depth = INIT_DEPTH; // 无效就设置默认值
             }
         }
         // remove tracking-lost feature after marginalize
@@ -414,12 +409,12 @@ void FeatureManager::removeFront(int frame_count)
         }
         else
         {
-            int j = WINDOW_SIZE - 1 - it->start_frame;  // 倒数第二帧在这个地图点对应KF vector的idx
-            if (it->endFrame() < frame_count - 1)   // 如果该地图点不能被倒数第二帧看到，那没什么好做的
+            int j = WINDOW_SIZE - 1 - it->start_frame; // 倒数第二帧在这个地图点对应KF vector的idx
+            if (it->endFrame() < frame_count - 1)      // 如果该地图点不能被倒数第二帧看到，那没什么好做的
                 continue;
             it->feature_per_frame.erase(it->feature_per_frame.begin() + j); // 能被倒数第二帧看到，erase掉这个索引
-            if (it->feature_per_frame.size() == 0)  // 如果这个地图点没有别的观测了
-                feature.erase(it);  // 就没有存在的价值了
+            if (it->feature_per_frame.size() == 0)                          // 如果这个地图点没有别的观测了
+                feature.erase(it);                                          // 就没有存在的价值了
         }
     }
 }
@@ -448,7 +443,7 @@ double FeatureManager::compensatedParallax2(const FeaturePerId &it_per_id, int f
     double dep_i = p_i(2);
     double u_i = p_i(0) / dep_i;
     double v_i = p_i(1) / dep_i;
-    double du = u_i - u_j, dv = v_i - v_j;  // 归一化相机坐标系的坐标差
+    double du = u_i - u_j, dv = v_i - v_j; // 归一化相机坐标系的坐标差
     // 当都是归一化坐标系时，他们两个都是一样的
     double dep_i_comp = p_i_comp(2);
     double u_i_comp = p_i_comp(0) / dep_i_comp;

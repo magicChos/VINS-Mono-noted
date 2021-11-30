@@ -232,12 +232,11 @@ void FeatureTracker::rejectWithF()
 }
 
 /**
- * @brief
- *
+ * @brief 给新的特征点赋上id,越界就返回false
  * @param[in] i
  * @return true
  * @return false
- *  给新的特征点赋上id,越界就返回false
+ *  
  */
 bool FeatureTracker::updateID(unsigned int i)
 {

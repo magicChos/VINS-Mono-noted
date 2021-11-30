@@ -222,7 +222,6 @@ bool LinearAlignment(map<double, ImageFrame> &all_image_frame, Vector3d &g, Vect
 
 /**
  * @brief
- *
  * @param[in] all_image_frame 每帧的位姿和对应的预积分量
  * @param[out] Bgs 陀螺仪零偏
  * @param[out] g 重力向量
@@ -230,7 +229,6 @@ bool LinearAlignment(map<double, ImageFrame> &all_image_frame, Vector3d &g, Vect
  * @return true
  * @return false
  */
-
 bool VisualIMUAlignment(map<double, ImageFrame> &all_image_frame, Vector3d *Bgs, Vector3d &g, VectorXd &x)
 {
     solveGyroscopeBias(all_image_frame, Bgs);

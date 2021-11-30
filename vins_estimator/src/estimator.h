@@ -37,6 +37,11 @@ public:
     // map int: feature Id
     // pair int: camera Id
     // pair value 7: x,y,z,u,v,ux,vx
+    /**
+     * @brief 实现了视觉与IMU的初始化以及非线性优化的紧耦合
+     * @param [in] image:某帧所有特征点的[camera_id,[x,y,z,u,v,vx,vy]]构成的map,索引为feature_id
+     * @param [in] header 
+     */
     void processImage(const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image,
                       const std_msgs::Header &header);
     void setReloFrame(double _frame_stamp, int _frame_index, vector<Vector3d> &_match_points, Vector3d _relo_t, Matrix3d _relo_r);
@@ -44,12 +49,26 @@ public:
     // internal
     void clearState();
     bool initialStructure();
+
+    /**
+     * @brief 实现了陀螺仪的偏置校准（加速度偏置没有处理），计算速度V、重力g和尺度s
+     * @return true 
+     * @return false 
+     */
     bool visualInitialAlign();
+
     bool relativePose(Matrix3d &relative_R, Vector3d &relative_T, int &l);
     void slideWindow();
+
+    /*********************************
+     * @brief vio非线性优化求解里程计
+     */
     void solveOdometry();
+
     void slideWindowNew();
     void slideWindowOld();
+
+    // 基于滑动窗口的紧耦合的非线性优化，残差项的构造和求解
     void optimization();
     void vector2double();
     void double2vector();
@@ -67,7 +86,9 @@ public:
         MARGIN_SECOND_NEW = 1
     };
 
+    // 记录solver状态，默认为INITIAL
     SolverFlag solver_flag;
+    // 记录边缘化状态
     MarginalizationFlag marginalization_flag;
     Vector3d g;
     MatrixXd Ap[2], backup_A;
