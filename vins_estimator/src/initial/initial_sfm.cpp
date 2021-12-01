@@ -47,16 +47,19 @@ bool GlobalSFM::solveFrameByPnP(Matrix3d &R_initial, Vector3d &P_initial, int i,
 	vector<cv::Point3f> pts_3_vector;
 	for (int j = 0; j < feature_num; j++)
 	{
-		if (sfm_f[j].state != true) // 是false就是没有被三角化，pnp是3d到2d求解，因此需要3d点
+		// 是false就是没有被三角化，pnp是3d到2d求解，因此需要3d点
+		if (sfm_f[j].state != true) 
 			continue;
 		Vector2d point2d;
 		for (int k = 0; k < (int)sfm_f[j].observation.size(); k++)
 		{
 			if (sfm_f[j].observation[k].first == i)
 			{
+				// 第j个特征点被第k帧观测到的图像坐标
 				Vector2d img_pts = sfm_f[j].observation[k].second;
 				cv::Point2f pts_2(img_pts(0), img_pts(1));
 				pts_2_vector.push_back(pts_2);
+				// 第j个特征点三维坐标
 				cv::Point3f pts_3(sfm_f[j].position[0], sfm_f[j].position[1], sfm_f[j].position[2]);
 				pts_3_vector.push_back(pts_3);
 				break;
@@ -73,6 +76,8 @@ bool GlobalSFM::solveFrameByPnP(Matrix3d &R_initial, Vector3d &P_initial, int i,
 	cv::eigen2cv(R_initial, tmp_r);
 	cv::Rodrigues(tmp_r, rvec);
 	cv::eigen2cv(P_initial, t);
+
+	// ?????????????
 	cv::Mat K = (cv::Mat_<double>(3, 3) << 1, 0, 0, 0, 1, 0, 0, 0, 1);
 	bool pnp_succ;
 	pnp_succ = cv::solvePnP(pts_3_vector, pts_2_vector, K, D, rvec, t, 1);
@@ -92,7 +97,7 @@ bool GlobalSFM::solveFrameByPnP(Matrix3d &R_initial, Vector3d &P_initial, int i,
 }
 
 /**
- * @brief 根据两帧索引和位姿计算对应特征点的三角化位置
+ * @brief 根据两帧索引和位姿计算对应特征点的三角化位置，更新sfm_f.position
  * 
  * @param[in] frame0 
  * @param[in] Pose0 
@@ -105,7 +110,8 @@ void GlobalSFM::triangulateTwoFrames(int frame0, Eigen::Matrix<double, 3, 4> &Po
 									 vector<SFMFeature> &sfm_f)
 {
 	assert(frame0 != frame1);
-	for (int j = 0; j < feature_num; j++) // feature_num是特征点总数
+	// feature_num是特征点总数
+	for (int j = 0; j < feature_num; j++) 
 	{
 		if (sfm_f[j].state == true) // 已经三角化过了
 			continue;
@@ -117,7 +123,8 @@ void GlobalSFM::triangulateTwoFrames(int frame0, Eigen::Matrix<double, 3, 4> &Po
 		{
 			if (sfm_f[j].observation[k].first == frame0)
 			{
-				point0 = sfm_f[j].observation[k].second; // 取出在该帧的观测
+				 // 找到对应的帧索引，取出2D像素坐标
+				point0 = sfm_f[j].observation[k].second; 
 				has_0 = true;
 			}
 			if (sfm_f[j].observation[k].first == frame1)
@@ -146,16 +153,16 @@ void GlobalSFM::triangulateTwoFrames(int frame0, Eigen::Matrix<double, 3, 4> &Po
 // relative_q[i][j]  j_q_i
 // relative_t[i][j]  j_t_ji  (j < i)
 /**
- * @brief 根据已有的枢纽帧和最后一帧的位姿变换，得到各帧位姿和3d点坐标，最后通过ceres进行优化
+ * @brief 纯视觉sfm，求解窗口中的所有图像帧相对于第l帧的位姿和三角化的特征点坐标
  * 
  * @param[in] frame_num 滑窗内KF总数 
  * @param[out] q  恢复出来的滑窗中各个姿态
  * @param[out] T  恢复出来的滑窗中各个平移
  * @param[in] l 	枢纽帧的idx
- * @param[in] relative_R 	枢纽帧和最后一帧的旋转
- * @param[in] relative_T 	枢纽帧和最后一帧的平移
+ * @param[in] relative_R 	当前帧到第l帧的旋转矩阵
+ * @param[in] relative_T 	当前帧到第l帧的平移
  * @param[in] sfm_f 	用来做sfm的特征点集合
- * @param[out] sfm_tracked_points 恢复出来的地图点
+ * @param[out] sfm_tracked_points 所有在sfm中三角化的特征点ID和坐标
  * @return true 
  * @return false 
  */
@@ -186,6 +193,8 @@ bool GlobalSFM::construct(int frame_num, Quaterniond *q, Vector3d *T, int l,
 	Quaterniond c_Quat[frame_num];
 	double c_rotation[frame_num][4];
 	double c_translation[frame_num][3];
+
+	// 位姿3*4，第l帧到每一帧变换矩阵
 	Eigen::Matrix<double, 3, 4> Pose[frame_num];
 
 	// 将枢纽帧和最后一帧Twc转成Tcw，包括四元数，旋转矩阵，平移向量和增广矩阵
@@ -195,6 +204,7 @@ bool GlobalSFM::construct(int frame_num, Quaterniond *q, Vector3d *T, int l,
 	Pose[l].block<3, 3>(0, 0) = c_Rotation[l];
 	Pose[l].block<3, 1>(0, 3) = c_Translation[l];
 
+	// 滑动窗口最后一帧即当前帧
 	c_Quat[frame_num - 1] = q[frame_num - 1].inverse();
 	c_Rotation[frame_num - 1] = c_Quat[frame_num - 1].toRotationMatrix();
 	c_Translation[frame_num - 1] = -1 * (c_Rotation[frame_num - 1] * T[frame_num - 1]);
@@ -218,6 +228,8 @@ bool GlobalSFM::construct(int frame_num, Quaterniond *q, Vector3d *T, int l,
 				return false;
 			c_Rotation[i] = R_initial;
 			c_Translation[i] = P_initial;
+
+			// 直接将Matrix3d赋给四元数？
 			c_Quat[i] = c_Rotation[i];
 			Pose[i].block<3, 3>(0, 0) = c_Rotation[i];
 			Pose[i].block<3, 1>(0, 3) = c_Translation[i];
@@ -256,7 +268,9 @@ bool GlobalSFM::construct(int frame_num, Quaterniond *q, Vector3d *T, int l,
 	{
 		if (sfm_f[j].state == true)
 			continue;
-		if ((int)sfm_f[j].observation.size() >= 2) // 只有被两个以上的KF观测到才可以三角化
+		
+		// 只有被两个以上的KF观测到才可以三角化
+		if ((int)sfm_f[j].observation.size() >= 2) 
 		{
 			Vector2d point0, point1;
 			// 取首尾两个KF，尽量保证两KF之间足够位移
@@ -264,6 +278,7 @@ bool GlobalSFM::construct(int frame_num, Quaterniond *q, Vector3d *T, int l,
 			point0 = sfm_f[j].observation[0].second;
 			int frame_1 = sfm_f[j].observation.back().first;
 			point1 = sfm_f[j].observation.back().second;
+
 			Vector3d point_3d;
 			triangulatePoint(Pose[frame_0], Pose[frame_1], point0, point1, point_3d);
 			sfm_f[j].state = true;
@@ -274,25 +289,13 @@ bool GlobalSFM::construct(int frame_num, Quaterniond *q, Vector3d *T, int l,
 		}
 	}
 
-	/*
-	for (int i = 0; i < frame_num; i++)
-	{
-		q[i] = c_Rotation[i].transpose(); 
-		cout << "solvePnP  q" << " i " << i <<"  " <<q[i].w() << "  " << q[i].vec().transpose() << endl;
-	}
-	for (int i = 0; i < frame_num; i++)
-	{
-		Vector3d t_tmp;
-		t_tmp = -1 * (q[i] * c_Translation[i]);
-		cout << "solvePnP  t" << " i " << i <<"  " << t_tmp.x() <<"  "<< t_tmp.y() <<"  "<< t_tmp.z() << endl;
-	}
-*/
 	//full BA
 	// Step 5 求出了所有的位姿和3d点之后，进行一个视觉slam的global BA
 	// 可能需要介绍一下ceres  http://ceres-solver.org/
 	ceres::Problem problem;
 	ceres::LocalParameterization *local_parameterization = new ceres::QuaternionParameterization();
-	//cout << " begin full BA " << endl;
+
+	// 遍历所有关键帧
 	for (int i = 0; i < frame_num; i++)
 	{
 		//double array for ceres
@@ -325,7 +328,9 @@ bool GlobalSFM::construct(int frame_num, Quaterniond *q, Vector3d *T, int l,
 		// 遍历所有的观测帧，对这些帧建立约束
 		for (int j = 0; j < int(sfm_f[i].observation.size()); j++)
 		{
+			// 第i个特征点被第j帧观测到的帧索引
 			int l = sfm_f[i].observation[j].first;
+
 			ceres::CostFunction *cost_function = ReprojectionError3D::Create(
 				sfm_f[i].observation[j].second.x(),
 				sfm_f[i].observation[j].second.y());
@@ -350,6 +355,7 @@ bool GlobalSFM::construct(int frame_num, Quaterniond *q, Vector3d *T, int l,
 		//cout << "vision only BA not converge " << endl;
 		return false;
 	}
+
 	// 优化结束，把double数组的值返回成对应类型的值
 	// 同时Tcw -> Twc
 	for (int i = 0; i < frame_num; i++)
@@ -359,14 +365,15 @@ bool GlobalSFM::construct(int frame_num, Quaterniond *q, Vector3d *T, int l,
 		q[i].y() = c_rotation[i][2];
 		q[i].z() = c_rotation[i][3];
 		q[i] = q[i].inverse();
-		//cout << "final  q" << " i " << i <<"  " <<q[i].w() << "  " << q[i].vec().transpose() << endl;
 	}
+
 	for (int i = 0; i < frame_num; i++)
 	{
-
 		T[i] = -1 * (q[i] * Vector3d(c_translation[i][0], c_translation[i][1], c_translation[i][2]));
 		//cout << "final  t" << " i " << i <<"  " << T[i](0) <<"  "<< T[i](1) <<"  "<< T[i](2) << endl;
 	}
+
+	// 遍历用来做sfm的所有特征点
 	for (int i = 0; i < (int)sfm_f.size(); i++)
 	{
 		if (sfm_f[i].state)

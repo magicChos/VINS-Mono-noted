@@ -35,11 +35,12 @@ int FeatureManager::getFeatureCount()
     int cnt = 0;
     for (auto &it : feature)
     {
-
+        // 所有特征点被观测到的帧数
         it.used_num = it.feature_per_frame.size();
-
+        // 如果该特征点有两帧以上观测到了  且第一次观测到帧数不是在最后
         if (it.used_num >= 2 && it.start_frame < WINDOW_SIZE - 2)
         {
+            // 这个特征点是有效的
             cnt++;
         }
     }
@@ -49,7 +50,7 @@ int FeatureManager::getFeatureCount()
 /**
  * @brief 增加特征点信息，同时检查上一帧是否时关键帧
  * @param[in] frame_count 
- * @param[in] image 
+ * @param[in] image ：https://img-blog.csdnimg.cn/20200316142254415.png
  * @param[in] td 
  * @return true 
  * @return false 
@@ -58,8 +59,10 @@ bool FeatureManager::addFeatureCheckParallax(int frame_count, const map<int, vec
 {
     ROS_DEBUG("input feature: %d", (int)image.size());
     ROS_DEBUG("num of feature: %d", getFeatureCount());
+    // 所有特征点视差总和
     double parallax_sum = 0;
     int parallax_num = 0;
+
     last_track_num = 0;
     // 遍历每个特征点
     for (auto &id_pts : image)
@@ -74,7 +77,8 @@ bool FeatureManager::addFeatureCheckParallax(int frame_count, const map<int, vec
         // 这是一个新的特征点
         if (it == feature.end())
         {
-            // 在特征点管理器中，新创建一个特征点id，这里的frame_count就是该特征点在滑窗中的当前位置，作为这个特征点的起始位置
+            // 在特征点管理器中，新创建一个特征点id，这里的frame_count就是该特征点在滑窗中的当前位置，
+            // 作为这个特征点的起始位置
             feature.push_back(FeaturePerId(feature_id, frame_count));
             feature.back().feature_per_frame.push_back(f_per_fra);
         }
@@ -168,12 +172,15 @@ vector<pair<Vector3d, Vector3d>> FeatureManager::getCorresponding(int frame_coun
 void FeatureManager::setDepth(const VectorXd &x)
 {
     int feature_index = -1;
+    // 遍历所有特征点
     for (auto &it_per_id : feature)
     {
+        // 能够观测到某个特征点的所有相关帧数目
         it_per_id.used_num = it_per_id.feature_per_frame.size();
         if (!(it_per_id.used_num >= 2 && it_per_id.start_frame < WINDOW_SIZE - 2))
             continue;
 
+        // ?????
         it_per_id.estimated_depth = 1.0 / x(++feature_index);
         //ROS_INFO("feature id %d , start_frame %d, depth %f ", it_per_id->feature_id, it_per_id-> start_frame, it_per_id->estimated_depth);
         if (it_per_id.estimated_depth < 0)
@@ -427,11 +434,13 @@ double FeatureManager::compensatedParallax2(const FeaturePerId &it_per_id, int f
     const FeaturePerFrame &frame_j = it_per_id.feature_per_frame[frame_count - 1 - it_per_id.start_frame];
 
     double ans = 0;
+    // 3D路标点（倒数第二帧j）
     Vector3d p_j = frame_j.point;
 
     double u_j = p_j(0);
     double v_j = p_j(1);
 
+    // 3D路标点（倒数第三帧i）
     Vector3d p_i = frame_i.point;
     Vector3d p_i_comp;
 

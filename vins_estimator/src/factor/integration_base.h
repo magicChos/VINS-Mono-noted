@@ -234,25 +234,39 @@ public:
         return residuals;
     }
 
+    // 每次预积分时间周期长度
     double dt;
+    // t时刻对应的加速度
     Eigen::Vector3d acc_0, gyr_0;
+    // t+1时刻对应的加速度
     Eigen::Vector3d acc_1, gyr_1;
 
+    // k帧图像时刻对应的IMU测量值
     const Eigen::Vector3d linearized_acc, linearized_gyr;
+    // 加速度计和陀螺仪零偏，在[k,k+1]区间上视为不变
     Eigen::Vector3d linearized_ba, linearized_bg;
 
+    // 预积分误差的雅克比矩阵
     Eigen::Matrix<double, 15, 15> jacobian, covariance;
     Eigen::Matrix<double, 15, 15> step_jacobian;
     Eigen::Matrix<double, 15, 18> step_V;
+    // 系统噪声矩阵
     Eigen::Matrix<double, 18, 18> noise;
 
+    //所有IMU预积分区间的总时长
     double sum_dt;
+    // 预积分位移
     Eigen::Vector3d delta_p;
+    // 预积分旋转
     Eigen::Quaterniond delta_q;
+    // 预积分速度
     Eigen::Vector3d delta_v;
 
+    // 用于存储每次预积分时间dt的寄存器
     std::vector<double> dt_buf;
+    // 用于存储每次预积分加速度量测的寄存器
     std::vector<Eigen::Vector3d> acc_buf;
+    // 用于存储每次预积分角速度量测的寄存器
     std::vector<Eigen::Vector3d> gyr_buf;
 };
 /*

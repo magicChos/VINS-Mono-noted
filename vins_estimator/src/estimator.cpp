@@ -308,16 +308,20 @@ bool Estimator::initialStructure()
 
     // 特征点坐标
     map<int, Vector3d> sfm_tracked_points;
-    
+
     // 保存每个特征点的信息
-    vector<SFMFeature> sfm_f; 
-    // 遍历所有的特征点
+    vector<SFMFeature> sfm_f;
+    // 遍历所有的特征点，将结果保存到sfm_f
     for (auto &it_per_id : f_manager.feature)
     {
         int imu_j = it_per_id.start_frame - 1; // 这个跟imu无关，就是存储观测特征点的帧的索引
-        SFMFeature tmp_feature;                // 用来后续做sfm
+
+        // 定义路标点临时对象
+        SFMFeature tmp_feature;             
         tmp_feature.state = false;
         tmp_feature.id = it_per_id.feature_id;
+
+        // 遍历观测到该特征点的所有帧
         for (auto &it_per_frame : it_per_id.feature_per_frame)
         {
             imu_j++;
@@ -327,7 +331,7 @@ bool Estimator::initialStructure()
         }
         sfm_f.push_back(tmp_feature);
     }
-    
+
     // 这里的第L帧是从第一帧开始到滑动窗口中第一个满足与当前帧的平均视差足够大的帧
     // 当前帧到第L帧的坐标变换
     Matrix3d relative_R;
@@ -338,7 +342,7 @@ bool Estimator::initialStructure()
         ROS_INFO("Not enough features or parallax; Move device around");
         return false;
     }
-    
+
     GlobalSFM sfm;
     // 进行sfm的求解
     // 求解窗口中所有图像帧的位姿QT(相对第l帧)
@@ -357,6 +361,7 @@ bool Estimator::initialStructure()
     map<double, ImageFrame>::iterator frame_it;
     map<int, Vector3d>::iterator it;
     frame_it = all_image_frame.begin();
+
     // i代表跟这个帧最近的KF的索引
     for (int i = 0; frame_it != all_image_frame.end(); frame_it++)
     {
@@ -387,9 +392,11 @@ bool Estimator::initialStructure()
         frame_it->second.is_key_frame = false;
         vector<cv::Point3f> pts_3_vector;
         vector<cv::Point2f> pts_2_vector;
+
         // 遍历这一帧对应的特征点
         for (auto &id_pts : frame_it->second.points)
         {
+            // feature id
             int feature_id = id_pts.first;
             // 由于是单目，这里id_pts.second大小就是1
             for (auto &i_p : id_pts.second)
@@ -526,7 +533,7 @@ bool Estimator::visualInitialAlign()
     R0 = Utility::ypr2R(Eigen::Vector3d{-yaw, 0, 0}) * R0; // 第一帧yaw赋0
     g = R0 * g;
     //Matrix3d rot_diff = R0 * Rs[0].transpose();
-    
+
     // 世界坐标系与摄像机坐标系c0之间的旋转矩阵
     Matrix3d rot_diff = R0;
     for (int i = 0; i <= frame_count; i++)
