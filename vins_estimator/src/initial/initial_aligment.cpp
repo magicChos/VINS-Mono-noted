@@ -4,7 +4,7 @@
  * @brief 求解陀螺仪零偏，同时利用求出来的零偏重新进行预积分
  *
  * @param[in] all_image_frame
- * @param[in] Bgs
+ * @param[out] Bgs
  */
 void solveGyroscopeBias(map<double, ImageFrame> &all_image_frame, Vector3d *Bgs)
 {
@@ -17,6 +17,7 @@ void solveGyroscopeBias(map<double, ImageFrame> &all_image_frame, Vector3d *Bgs)
     map<double, ImageFrame>::iterator frame_j;
     for (frame_i = all_image_frame.begin(); next(frame_i) != all_image_frame.end(); frame_i++)
     {
+        // Ax = B
         frame_j = next(frame_i);
         MatrixXd tmp_A(3, 3);
         tmp_A.setZero();
@@ -42,6 +43,12 @@ void solveGyroscopeBias(map<double, ImageFrame> &all_image_frame, Vector3d *Bgs)
     }
 }
 
+/**
+ * @brief 构建切向空间
+ * 
+ * @param g0 
+ * @return MatrixXd 
+ */
 MatrixXd TangentBasis(Vector3d &g0)
 {
     Vector3d b, c;
@@ -66,11 +73,12 @@ MatrixXd TangentBasis(Vector3d &g0)
  */
 void RefineGravity(map<double, ImageFrame> &all_image_frame, Vector3d &g, VectorXd &x)
 {
-    // 参考论文
+    // 公式推导（47）
     Vector3d g0 = g.normalized() * G.norm();
     Vector3d lx, ly;
     // VectorXd x;
     int all_frame_count = all_image_frame.size();
+    // 
     int n_state = all_frame_count * 3 + 2 + 1;
 
     MatrixXd A{n_state, n_state};
@@ -146,6 +154,7 @@ bool LinearAlignment(map<double, ImageFrame> &all_image_frame, Vector3d &g, Vect
 {
     // 这一部分内容对照论文进行理解
     int all_frame_count = all_image_frame.size();
+    // 优化变量的总维度
     int n_state = all_frame_count * 3 + 3 + 1;
 
     MatrixXd A{n_state, n_state};
@@ -221,7 +230,7 @@ bool LinearAlignment(map<double, ImageFrame> &all_image_frame, Vector3d &g, Vect
 }
 
 /**
- * @brief
+ * @brief 函数计算陀螺仪偏置bg，尺度s，重力加速度g和速度v
  * @param[in] all_image_frame 每帧的位姿和对应的预积分量
  * @param[out] Bgs 陀螺仪零偏
  * @param[out] g 重力向量
@@ -231,8 +240,10 @@ bool LinearAlignment(map<double, ImageFrame> &all_image_frame, Vector3d &g, Vect
  */
 bool VisualIMUAlignment(map<double, ImageFrame> &all_image_frame, Vector3d *Bgs, Vector3d &g, VectorXd &x)
 {
+    // 计算陀螺仪偏置
     solveGyroscopeBias(all_image_frame, Bgs);
 
+    //计算尺度，重力加速度和速度
     if (LinearAlignment(all_image_frame, g, x))
         return true;
     else
