@@ -463,7 +463,7 @@ bool Estimator::visualInitialAlign()
     }
 
     // change state
-    // 首先把对齐后KF的位姿附给滑窗中的值，Rwi twc
+    // 首先把对齐后KF的位姿赋给滑窗中的值，Rwc twc
     // 获取所有图像帧的位姿，并将其设为关键帧
     for (int i = 0; i <= frame_count; i++)
     {
