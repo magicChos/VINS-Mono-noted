@@ -25,10 +25,14 @@
 using namespace std;
 
 queue<sensor_msgs::ImageConstPtr> image_buf;
+// 记录关键帧中的地图点
 queue<sensor_msgs::PointCloudConstPtr> point_buf;
 queue<nav_msgs::Odometry::ConstPtr> pose_buf;
 queue<Eigen::Vector3d> odometry_buf;
+
+// buf锁
 std::mutex m_buf;
+// process锁
 std::mutex m_process;
 int frame_index = 0;
 int sequence = 1;
@@ -50,7 +54,10 @@ int LOOP_CLOSURE;
 int FAST_RELOCALIZATION;
 
 camodocal::CameraPtr m_camera;
+
+// 相机和imu的外参
 Eigen::Vector3d tic;
+// 相机和imu的外参
 Eigen::Matrix3d qic;
 ros::Publisher pub_match_img;
 ros::Publisher pub_match_points;
@@ -67,7 +74,7 @@ Eigen::Vector3d last_t(-100, -100, -100);
 double last_image_time = -1;
 
 /**
- * @brief 新建一个sequence
+ * @brief 新建一个sequence(地图合并功能)
  *
  */
 void new_sequence()
@@ -82,6 +89,7 @@ void new_sequence()
     }
     posegraph.posegraph_visualization->reset();
     posegraph.publish();
+
     m_buf.lock();
     while (!image_buf.empty())
         image_buf.pop();
@@ -100,6 +108,7 @@ void image_callback(const sensor_msgs::ImageConstPtr &image_msg)
     // ROS_INFO("image_callback!");
     if (!LOOP_CLOSURE) // 不检测回环，原图也没有意义
         return;
+
     m_buf.lock();
     image_buf.push(image_msg); // 存入buffer
     m_buf.unlock();
@@ -147,6 +156,7 @@ void pose_callback(const nav_msgs::Odometry::ConstPtr &pose_msg)
     // ROS_INFO("pose_callback!");
     if (!LOOP_CLOSURE)
         return;
+
     m_buf.lock();
     pose_buf.push(pose_msg);
     m_buf.unlock();
@@ -197,9 +207,11 @@ void imu_forward_callback(const nav_msgs::Odometry::ConstPtr &forward_msg)
 void relo_relative_pose_callback(const nav_msgs::Odometry::ConstPtr &pose_msg)
 {
     // T_loop_cur
+    // 当前帧和闭环帧的相对位移
     Vector3d relative_t = Vector3d(pose_msg->pose.pose.position.x,
                                    pose_msg->pose.pose.position.y,
                                    pose_msg->pose.pose.position.z);
+    // 相对旋转
     Quaterniond relative_q;
     relative_q.w() = pose_msg->pose.pose.orientation.w;
     relative_q.x() = pose_msg->pose.pose.orientation.x;
@@ -420,6 +432,7 @@ void process()
                 vector<cv::Point2f> point_2d_uv;     // 归一化相机坐标系的坐标
                 vector<cv::Point2f> point_2d_normal; // 像素坐标
                 vector<double> point_id;             // 地图点的idx
+
                 // 遍历所有的地图点
                 for (unsigned int i = 0; i < point_msg->points.size(); i++)
                 {

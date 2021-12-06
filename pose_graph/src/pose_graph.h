@@ -24,7 +24,6 @@
 #include "ThirdParty/DBoW/TemplatedDatabase.h"
 #include "ThirdParty/DBoW/TemplatedVocabulary.h"
 
-
 #define SHOW_S_EDGE false
 #define SHOW_L_EDGE true
 #define SAVE_LOOP_PATH true
@@ -32,20 +31,21 @@
 using namespace DVision;
 using namespace DBoW2;
 
+//  位姿图的建立与图优化、回环检测与闭环
 class PoseGraph
 {
 public:
 	PoseGraph();
 	~PoseGraph();
 	void registerPub(ros::NodeHandle &n);
-	void addKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop);
-	void loadKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop);
+	void addKeyFrame(KeyFrame *cur_kf, bool flag_detect_loop);
+	void loadKeyFrame(KeyFrame *cur_kf, bool flag_detect_loop);
 	void loadVocabulary(std::string voc_path);
-	void updateKeyFrameLoop(int index, Eigen::Matrix<double, 8, 1 > &_loop_info);
-	KeyFrame* getKeyFrame(int index);
+	void updateKeyFrameLoop(int index, Eigen::Matrix<double, 8, 1> &_loop_info);
+	KeyFrame *getKeyFrame(int index);
 	nav_msgs::Path path[10];
 	nav_msgs::Path base_path;
-	CameraPoseVisualization* posegraph_visualization;
+	CameraPoseVisualization *posegraph_visualization;
 	void savePoseGraph();
 	void loadPoseGraph();
 	void publish();
@@ -53,25 +53,30 @@ public:
 	Vector3d t_drift;
 	double yaw_drift;
 	Matrix3d r_drift;
-	// world frame( base sequence or first sequence)<----> cur sequence frame  
+	// world frame( base sequence or first sequence)<----> cur sequence frame
 	Vector3d w_t_vio;
 	Matrix3d w_r_vio;
 
-
 private:
-	int detectLoop(KeyFrame* keyframe, int frame_index);
-	void addKeyFrameIntoVoc(KeyFrame* keyframe);
+	int detectLoop(KeyFrame *keyframe, int frame_index);
+	void addKeyFrameIntoVoc(KeyFrame *keyframe);
 	void optimize4DoF();
 	void updatePath();
-	list<KeyFrame*> keyframelist;
+	// 记录关键帧列表
+	list<KeyFrame *> keyframelist;
+
+	// 关键帧列表锁
 	std::mutex m_keyframelist;
+	// 优化buf锁
 	std::mutex m_optimize_buf;
 	std::mutex m_path;
+	// 漂移锁
 	std::mutex m_drift;
 	std::thread t_optimization;
 	std::queue<int> optimize_buf;
 
 	int global_index;
+	// ?
 	int sequence_cnt;
 	vector<bool> sequence_loop;
 	map<int, cv::Mat> image_pool;
@@ -79,7 +84,7 @@ private:
 	int base_sequence;
 
 	BriefDatabase db;
-	BriefVocabulary* voc;
+	BriefVocabulary *voc;
 
 	ros::Publisher pub_pg_path;
 	ros::Publisher pub_base_path;
@@ -88,42 +93,44 @@ private:
 };
 
 template <typename T>
-T NormalizeAngle(const T& angle_degrees) {
-  if (angle_degrees > T(180.0))
-  	return angle_degrees - T(360.0);
-  else if (angle_degrees < T(-180.0))
-  	return angle_degrees + T(360.0);
-  else
-  	return angle_degrees;
+T NormalizeAngle(const T &angle_degrees)
+{
+	if (angle_degrees > T(180.0))
+		return angle_degrees - T(360.0);
+	else if (angle_degrees < T(-180.0))
+		return angle_degrees + T(360.0);
+	else
+		return angle_degrees;
 };
 
 // 将增量叠加后的角度约束至（-180, 180）之间
-class AngleLocalParameterization {
- public:
+class AngleLocalParameterization
+{
+public:
+	template <typename T>
+	bool operator()(const T *theta_radians, const T *delta_theta_radians,
+					T *theta_radians_plus_delta) const
+	{
+		*theta_radians_plus_delta =
+			NormalizeAngle(*theta_radians + *delta_theta_radians);
 
-  template <typename T>
-  bool operator()(const T* theta_radians, const T* delta_theta_radians,
-                  T* theta_radians_plus_delta) const {
-    *theta_radians_plus_delta =
-        NormalizeAngle(*theta_radians + *delta_theta_radians);
+		return true;
+	}
 
-    return true;
-  }
-
-  static ceres::LocalParameterization* Create() {
-    return (new ceres::AutoDiffLocalParameterization<AngleLocalParameterization,
-                                                     1, 1>);
-  }
+	static ceres::LocalParameterization *Create()
+	{
+		return (new ceres::AutoDiffLocalParameterization<AngleLocalParameterization,
+														 1, 1>);
+	}
 };
 
-template <typename T> 
+template <typename T>
 void YawPitchRollToRotationMatrix(const T yaw, const T pitch, const T roll, T R[9])
 {
 
 	T y = yaw / T(180.0) * T(M_PI);
 	T p = pitch / T(180.0) * T(M_PI);
 	T r = roll / T(180.0) * T(M_PI);
-
 
 	R[0] = cos(y) * cos(p);
 	R[1] = -sin(y) * cos(r) + cos(y) * sin(p) * sin(r);
@@ -136,7 +143,7 @@ void YawPitchRollToRotationMatrix(const T yaw, const T pitch, const T roll, T R[
 	R[8] = cos(p) * cos(r);
 };
 
-template <typename T> 
+template <typename T>
 void RotationMatrixTranspose(const T R[9], T inv_R[9])
 {
 	inv_R[0] = R[0];
@@ -150,7 +157,7 @@ void RotationMatrixTranspose(const T R[9], T inv_R[9])
 	inv_R[8] = R[8];
 };
 
-template <typename T> 
+template <typename T>
 void RotationMatrixRotatePoint(const T R[9], const T t[3], T r_t[3])
 {
 	r_t[0] = R[0] * t[0] + R[1] * t[1] + R[2] * t[2];
@@ -163,11 +170,11 @@ struct FourDOFError
 {
 	// 构造函数传入两帧之间的相对位姿差
 	FourDOFError(double t_x, double t_y, double t_z, double relative_yaw, double pitch_i, double roll_i)
-				  :t_x(t_x), t_y(t_y), t_z(t_z), relative_yaw(relative_yaw), pitch_i(pitch_i), roll_i(roll_i){}
+		: t_x(t_x), t_y(t_y), t_z(t_z), relative_yaw(relative_yaw), pitch_i(pitch_i), roll_i(roll_i) {}
 
 	template <typename T>
 	// 用来约束i帧的平移和yaw以及j帧的平移和yaw
-	bool operator()(const T* const yaw_i, const T* ti, const T* yaw_j, const T* tj, T* residuals) const
+	bool operator()(const T *const yaw_i, const T *ti, const T *yaw_j, const T *tj, T *residuals) const
 	{
 		T t_w_ij[3];
 		t_w_ij[0] = tj[0] - ti[0];
@@ -195,28 +202,28 @@ struct FourDOFError
 		return true;
 	}
 
-	static ceres::CostFunction* Create(const double t_x, const double t_y, const double t_z,
-									   const double relative_yaw, const double pitch_i, const double roll_i) 
+	static ceres::CostFunction *Create(const double t_x, const double t_y, const double t_z,
+									   const double relative_yaw, const double pitch_i, const double roll_i)
 	{
-	  return (new ceres::AutoDiffCostFunction<
-	          FourDOFError, 4, 1, 3, 1, 3>(
-	          	new FourDOFError(t_x, t_y, t_z, relative_yaw, pitch_i, roll_i)));
+		return (new ceres::AutoDiffCostFunction<
+				FourDOFError, 4, 1, 3, 1, 3>(
+			new FourDOFError(t_x, t_y, t_z, relative_yaw, pitch_i, roll_i)));
 	}
 
 	double t_x, t_y, t_z;
 	double relative_yaw, pitch_i, roll_i;
-
 };
 
 struct FourDOFWeightError
 {
 	FourDOFWeightError(double t_x, double t_y, double t_z, double relative_yaw, double pitch_i, double roll_i)
-				  :t_x(t_x), t_y(t_y), t_z(t_z), relative_yaw(relative_yaw), pitch_i(pitch_i), roll_i(roll_i){
-				  	weight = 1;
-				  }
+		: t_x(t_x), t_y(t_y), t_z(t_z), relative_yaw(relative_yaw), pitch_i(pitch_i), roll_i(roll_i)
+	{
+		weight = 1;
+	}
 
 	template <typename T>
-	bool operator()(const T* const yaw_i, const T* ti, const T* yaw_j, const T* tj, T* residuals) const
+	bool operator()(const T *const yaw_i, const T *ti, const T *yaw_j, const T *tj, T *residuals) const
 	{
 		T t_w_ij[3];
 		t_w_ij[0] = tj[0] - ti[0];
@@ -236,21 +243,20 @@ struct FourDOFWeightError
 		residuals[0] = (t_i_ij[0] - T(t_x)) * T(weight);
 		residuals[1] = (t_i_ij[1] - T(t_y)) * T(weight);
 		residuals[2] = (t_i_ij[2] - T(t_z)) * T(weight);
-		residuals[3] = NormalizeAngle((yaw_j[0] - yaw_i[0] - T(relative_yaw))) * T(weight) / T(10.0); 	// 区别在于这里的权重
+		residuals[3] = NormalizeAngle((yaw_j[0] - yaw_i[0] - T(relative_yaw))) * T(weight) / T(10.0); // 区别在于这里的权重
 
 		return true;
 	}
 
-	static ceres::CostFunction* Create(const double t_x, const double t_y, const double t_z,
-									   const double relative_yaw, const double pitch_i, const double roll_i) 
+	static ceres::CostFunction *Create(const double t_x, const double t_y, const double t_z,
+									   const double relative_yaw, const double pitch_i, const double roll_i)
 	{
-	  return (new ceres::AutoDiffCostFunction<
-	          FourDOFWeightError, 4, 1, 3, 1, 3>(
-	          	new FourDOFWeightError(t_x, t_y, t_z, relative_yaw, pitch_i, roll_i)));
+		return (new ceres::AutoDiffCostFunction<
+				FourDOFWeightError, 4, 1, 3, 1, 3>(
+			new FourDOFWeightError(t_x, t_y, t_z, relative_yaw, pitch_i, roll_i)));
 	}
 
 	double t_x, t_y, t_z;
 	double relative_yaw, pitch_i, roll_i;
 	double weight;
-
 };
