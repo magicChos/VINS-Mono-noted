@@ -119,6 +119,8 @@ void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time)
 
     forw_pts.clear();
 
+    std::cout << "@test cur_pts size = " << cur_pts.size() << endl;
+
     if (cur_pts.size() > 0) // 上一帧有特征点，就可以进行光流追踪了
     {
         TicToc t_o;
