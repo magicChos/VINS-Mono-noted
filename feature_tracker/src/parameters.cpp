@@ -1,5 +1,6 @@
 #include "parameters.h"
 
+// 图像的topic
 std::string IMAGE_TOPIC;
 std::string IMU_TOPIC;
 std::vector<std::string> CAM_NAMES;
@@ -12,13 +13,14 @@ int FREQ;
 double F_THRESHOLD;
 int SHOW_TRACK;
 int STEREO_TRACK;
+// 是否做均衡化处理
 int EQUALIZE;
 int ROW;
 int COL;
 int FOCAL_LENGTH;
 int FISHEYE;
 
-// 是否发送此帧的标记
+// 是否发送此帧的标记,默认为false
 bool PUB_THIS_FRAME;
 
 template <typename T>

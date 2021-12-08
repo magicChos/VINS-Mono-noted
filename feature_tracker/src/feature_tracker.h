@@ -61,7 +61,7 @@ public:
   cv::Mat prev_img, cur_img, forw_img;
   // 记录flow image的强角点
   vector<cv::Point2f> n_pts;
-  // ？像素坐标
+  // 前一帧、当前帧、光流帧特征点的像素坐标
   vector<cv::Point2f> prev_pts, cur_pts, forw_pts;
   // 记录去畸变的归一化相机坐标
   vector<cv::Point2f> prev_un_pts, cur_un_pts;
