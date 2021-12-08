@@ -467,7 +467,7 @@ void PoseGraph::optimize4DoF()
             TicToc tmp_t;
             m_keyframelist.lock();
             // 取出当前帧对应的KF指针
-            KeyFrame *cur_kf = getKeyFrame(cur_index); 
+            KeyFrame *cur_kf = getKeyFrame(cur_index);
 
             int max_length = cur_index + 1; // 预设最大长度，总之优化帧数不可能超过这么多
 
@@ -553,11 +553,11 @@ void PoseGraph::optimize4DoF()
                 {
                     assert((*it)->loop_index >= first_looped_index);
                     // 得到回环帧在这次优化中的idx
-                    int connected_index = getKeyFrame((*it)->loop_index)->local_index; 
+                    int connected_index = getKeyFrame((*it)->loop_index)->local_index;
                     Vector3d euler_conncected = Utility::R2ypr(q_array[connected_index].toRotationMatrix());
                     Vector3d relative_t;
                     // 得到当前帧和回环帧的相对位姿
-                    relative_t = (*it)->getLoopRelativeT(); 
+                    relative_t = (*it)->getLoopRelativeT();
                     double relative_yaw = (*it)->getLoopRelativeYaw();
                     ceres::CostFunction *cost_function = FourDOFWeightError::Create(relative_t.x(), relative_t.y(), relative_t.z(),
                                                                                     relative_yaw, euler_conncected.y(), euler_conncected.z());
@@ -584,7 +584,7 @@ void PoseGraph::optimize4DoF()
             }
             */
 
-           //---------------------------------------------------------------
+            //---------------------------------------------------------------
             m_keyframelist.lock();
             i = 0;
             // 将优化后的位姿恢复
@@ -597,7 +597,7 @@ void PoseGraph::optimize4DoF()
                 Vector3d tmp_t = Vector3d(t_array[i][0], t_array[i][1], t_array[i][2]);
                 Matrix3d tmp_r = tmp_q.toRotationMatrix();
                 // 更新位姿
-                (*it)->updatePose(tmp_t, tmp_r); 
+                (*it)->updatePose(tmp_t, tmp_r);
 
                 if ((*it)->index == cur_index)
                     break;
