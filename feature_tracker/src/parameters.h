@@ -16,6 +16,8 @@ extern int MAX_CNT;
 extern int MIN_DIST;
 extern int WINDOW_SIZE;
 extern int FREQ;
+
+// 计算基础矩阵时点到极线的像素距离
 extern double F_THRESHOLD;
 extern int SHOW_TRACK;
 extern int STEREO_TRACK;

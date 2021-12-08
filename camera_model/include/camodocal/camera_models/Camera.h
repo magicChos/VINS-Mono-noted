@@ -72,7 +72,7 @@ public:
     virtual void liftSphere(const Eigen::Vector2d& p, Eigen::Vector3d& P) const = 0;
     //%output P
 
-    // Lift points from the image plane to the projective space
+    // Lift points from the image plane to the projective space(将图像平面上的点提升到投影空间)
     virtual void liftProjective(const Eigen::Vector2d& p, Eigen::Vector3d& P) const = 0;
     //%output P
 

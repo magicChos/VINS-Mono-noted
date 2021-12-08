@@ -42,6 +42,7 @@ void FeatureTracker::setMask()
         mask = cv::Mat(ROW, COL, CV_8UC1, cv::Scalar(255));
 
     // prefer to keep features that are tracked for long time
+    // int:跟踪次数，跟踪点像素坐标，int
     vector<pair<int, pair<cv::Point2f, int>>> cnt_pts_id;
 
     for (unsigned int i = 0; i < forw_pts.size(); i++)
@@ -79,16 +80,6 @@ void FeatureTracker::addPoints()
     }
 }
 
-/**
- * @brief
- *
- * @param[in] _img 输入图像
- * @param[in] _cur_time 图像的时间戳
- * 1、图像均衡化预处理
- * 2、光流追踪
- * 3、提取新的特征点（如果发布）
- * 4、所有特征点去畸变，计算速度
- */
 void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time)
 {
     cv::Mat img;
@@ -157,6 +148,7 @@ void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time)
 
         ROS_DEBUG("detect feature begins");
         TicToc t_t;
+        // ?
         int n_max_cnt = MAX_CNT - static_cast<int>(forw_pts.size());
         if (n_max_cnt > 0)
         {
@@ -199,7 +191,11 @@ void FeatureTracker::rejectWithF()
     {
         ROS_DEBUG("FM ransac begins");
         TicToc t_f;
-        vector<cv::Point2f> un_cur_pts(cur_pts.size()), un_forw_pts(forw_pts.size());
+
+        // 记录虚拟相机的像素坐标
+        vector<cv::Point2f> un_cur_pts(cur_pts.size());
+        // 记录光流跟踪的点在虚拟相机上的像素坐标
+        vector<cv::Point2f> un_forw_pts(forw_pts.size());
         for (unsigned int i = 0; i < cur_pts.size(); i++)
         {
             Eigen::Vector3d tmp_p;
@@ -222,6 +218,8 @@ void FeatureTracker::rejectWithF()
         // opencv接口计算本质矩阵，某种意义也是一种对级约束的outlier剔除
         cv::findFundamentalMat(un_cur_pts, un_forw_pts, cv::FM_RANSAC, F_THRESHOLD, 0.99, status);
         int size_a = cur_pts.size();
+
+        // 根据状态瘦身
         reduceVector(prev_pts, status);
         reduceVector(cur_pts, status);
         reduceVector(forw_pts, status);
@@ -238,7 +236,7 @@ void FeatureTracker::rejectWithF()
  * @param[in] i
  * @return true
  * @return false
- *  
+ *
  */
 bool FeatureTracker::updateID(unsigned int i)
 {

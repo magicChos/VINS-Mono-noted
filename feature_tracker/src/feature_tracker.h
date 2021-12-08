@@ -27,44 +27,59 @@ void reduceVector(vector<int> &v, vector<uchar> status);
 
 class FeatureTracker
 {
-  public:
-    FeatureTracker();
+public:
+  FeatureTracker();
 
-    void readImage(const cv::Mat &_img,double _cur_time);
+  /**
+   * @brief
+   *
+   * @param[in] _img 输入图像
+   * @param[in] _cur_time 图像的时间戳
+   * 1、图像均衡化预处理
+   * 2、光流追踪
+   * 3、提取新的特征点（如果发布）
+   * 4、所有特征点去畸变，计算速度
+   */
+  void readImage(const cv::Mat &_img, double _cur_time);
 
-    void setMask();
+  void setMask();
 
-    void addPoints();
+  void addPoints();
 
-    bool updateID(unsigned int i);
+  bool updateID(unsigned int i);
 
-    void readIntrinsicParameter(const string &calib_file);
+  void readIntrinsicParameter(const string &calib_file);
 
-    void showUndistortion(const string &name);
+  void showUndistortion(const string &name);
 
-    void rejectWithF();
+  void rejectWithF();
 
-    void undistortedPoints();
+  void undistortedPoints();
 
-    cv::Mat mask;
-    cv::Mat fisheye_mask;
-    cv::Mat prev_img, cur_img, forw_img;
-    vector<cv::Point2f> n_pts;
-    // 像素坐标
-    vector<cv::Point2f> prev_pts, cur_pts, forw_pts;
-    // 记录去畸变的归一化相机坐标
-    vector<cv::Point2f> prev_un_pts, cur_un_pts;
-    // 为当前帧相对前一帧特征点沿x,y方向的像素移动速度
-    vector<cv::Point2f> pts_velocity;
-    vector<int> ids;
+  cv::Mat mask;
+  cv::Mat fisheye_mask;
+  cv::Mat prev_img, cur_img, forw_img;
+  // 记录flow image的强角点
+  vector<cv::Point2f> n_pts;
+  // ？像素坐标
+  vector<cv::Point2f> prev_pts, cur_pts, forw_pts;
+  // 记录去畸变的归一化相机坐标
+  vector<cv::Point2f> prev_un_pts, cur_un_pts;
+  // 为当前帧相对前一帧特征点沿x,y方向的像素移动速度
+  vector<cv::Point2f> pts_velocity;
 
-    // 记录特征点被跟踪的次数
-    vector<int> track_cnt;
-    map<int, cv::Point2f> cur_un_pts_map;
-    map<int, cv::Point2f> prev_un_pts_map;
-    camodocal::CameraPtr m_camera;
-    double cur_time;
-    double prev_time;
+  // ?
+  vector<int> ids;
 
-    static int n_id;
+  // 记录特征点被跟踪的次数
+  vector<int> track_cnt;
+  
+  map<int, cv::Point2f> cur_un_pts_map;
+  map<int, cv::Point2f> prev_un_pts_map;
+  camodocal::CameraPtr m_camera;
+  double cur_time;
+  double prev_time;
+
+  // ?
+  static int n_id;
 };
