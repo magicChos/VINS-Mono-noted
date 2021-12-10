@@ -274,6 +274,7 @@ void process()
         // 给予范围的for循环，这里就是遍历每组image imu组合
         for (auto &measurement : measurements)
         {
+            // 记录图像帧的特征点信息
             auto img_msg = measurement.second;
             // dx,dy,dz：imu加速度，rx,ry,rz：imu角速度
             double dx = 0, dy = 0, dz = 0, rx = 0, ry = 0, rz = 0;
@@ -368,12 +369,15 @@ void process()
                 // 特征点id
                 int feature_id = v / NUM_OF_CAM;
                 int camera_id = v % NUM_OF_CAM;
-                double x = img_msg->points[i].x; // 去畸变后归一滑像素坐标
+                // 去畸变后归一滑像素坐标
+                double x = img_msg->points[i].x; 
                 double y = img_msg->points[i].y;
                 double z = img_msg->points[i].z;
-                double p_u = img_msg->channels[1].values[i]; // 特征点像素坐标
+                // 特征点像素坐标
+                double p_u = img_msg->channels[1].values[i]; 
                 double p_v = img_msg->channels[2].values[i];
-                double velocity_x = img_msg->channels[3].values[i]; // 特征点速度
+                // 特征点速度
+                double velocity_x = img_msg->channels[3].values[i]; 
                 double velocity_y = img_msg->channels[4].values[i];
                 ROS_ASSERT(z == 1); // 检查是不是归一化
                 

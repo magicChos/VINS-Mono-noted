@@ -51,7 +51,7 @@ int FeatureManager::getFeatureCount()
  * @brief 增加特征点信息，同时检查上一帧是否时关键帧
  * @param[in] frame_count 
  * @param[in] image ：https://img-blog.csdnimg.cn/20200316142254415.png
- * @param[in] td 
+ * @param[in] td ：图像帧的时间戳
  * @return true 
  * @return false 
  */

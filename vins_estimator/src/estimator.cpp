@@ -8,7 +8,7 @@ Estimator::Estimator() : f_manager{Rs}
 
 /**
  * @brief 外参，重投影置信度，延时设置
- * 
+ *
  */
 void Estimator::setParameter()
 {
@@ -89,8 +89,8 @@ void Estimator::clearState()
 /**
  * @brief 对imu数据进行处理，包括更新预积分量，和提供优化状态量的初始值
  * @param[in] dt 两帧imu时间间隔
- * @param[in] linear_acceleration 
- * @param[in] angular_velocity 
+ * @param[in] linear_acceleration
+ * @param[in] angular_velocity
  */
 void Estimator::processIMU(double dt, const Vector3d &linear_acceleration, const Vector3d &angular_velocity)
 {
@@ -110,8 +110,8 @@ void Estimator::processIMU(double dt, const Vector3d &linear_acceleration, const
     if (frame_count != 0)
     {
         pre_integrations[frame_count]->push_back(dt, linear_acceleration, angular_velocity);
-        //if(solver_flag != NON_LINEAR)
-        // 这个量用来做初始化用的
+        // if(solver_flag != NON_LINEAR)
+        //  这个量用来做初始化用的
         tmp_pre_integration->push_back(dt, linear_acceleration, angular_velocity);
         // 保存传感器数据
         dt_buf[frame_count].push_back(dt);
@@ -260,8 +260,8 @@ void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<doubl
 
 /**
  * @brief VIO初始化，将滑窗中的P V Q恢复到第0帧并且和重力对齐
- * @return true 
- * @return false 
+ * @return true
+ * @return false
  */
 bool Estimator::initialStructure()
 {
@@ -287,16 +287,16 @@ bool Estimator::initialStructure()
             Vector3d tmp_g = frame_it->second.pre_integration->delta_v / dt;
             // 求方差
             var += (tmp_g - aver_g).transpose() * (tmp_g - aver_g);
-            //cout << "frame g " << tmp_g.transpose() << endl;
+            // cout << "frame g " << tmp_g.transpose() << endl;
         }
         // 得到的标准差
         var = sqrt(var / ((int)all_image_frame.size() - 1));
-        //ROS_WARN("IMU variation %f!", var);
-        // 实际上检查结果并没有用
+        // ROS_WARN("IMU variation %f!", var);
+        //  实际上检查结果并没有用
         if (var < 0.25)
         {
             ROS_INFO("IMU excitation not enouth!");
-            //return false;
+            // return false;
         }
     }
     // Step 2 global sfm
@@ -317,7 +317,7 @@ bool Estimator::initialStructure()
         int imu_j = it_per_id.start_frame - 1; // 这个跟imu无关，就是存储观测特征点的帧的索引
 
         // 定义路标点临时对象
-        SFMFeature tmp_feature;             
+        SFMFeature tmp_feature;
         tmp_feature.state = false;
         tmp_feature.id = it_per_id.feature_id;
 
@@ -455,7 +455,7 @@ bool Estimator::visualInitialAlign()
 {
     TicToc t_g;
     VectorXd x;
-    //solve scale
+    // solve scale
     bool result = VisualIMUAlignment(all_image_frame, Bgs, g, x);
     if (!result)
     {
@@ -482,7 +482,7 @@ bool Estimator::visualInitialAlign()
         dep[i] = -1;           // 深度预设都是-1
     f_manager.clearDepth(dep); // 特征管理器把所有的特征点逆深度也设置为-1
 
-    //triangulat on cam pose , no tic
+    // triangulat on cam pose , no tic
     Vector3d TIC_TMP[NUM_OF_CAM];
     for (int i = 0; i < NUM_OF_CAM; i++)
         TIC_TMP[i].setZero();
@@ -533,7 +533,7 @@ bool Estimator::visualInitialAlign()
     double yaw = Utility::R2ypr(R0 * Rs[0]).x();           // Rs[0]实际上是R_j_0
     R0 = Utility::ypr2R(Eigen::Vector3d{-yaw, 0, 0}) * R0; // 第一帧yaw赋0
     g = R0 * g;
-    //Matrix3d rot_diff = R0 * Rs[0].transpose();
+    // Matrix3d rot_diff = R0 * Rs[0].transpose();
 
     // 世界坐标系与摄像机坐标系c0之间的旋转矩阵
     Matrix3d rot_diff = R0;
@@ -552,10 +552,10 @@ bool Estimator::visualInitialAlign()
 /**
  * @brief 该函数判断每帧到窗口最后一帧对应特征点的平均视差大于30，且内点数目大于12则可进行初始化
  * @param[out] relative_R 返回当前帧到第l帧的坐标变换
- * @param[out] relative_T 
+ * @param[out] relative_T
  * @param[out] l 输出符合要求的帧
- * @return true 
- * @return false 
+ * @return true
+ * @return false
  */
 bool Estimator::relativePose(Matrix3d &relative_R, Vector3d &relative_T, int &l)
 {
@@ -611,7 +611,7 @@ void Estimator::solveOdometry()
 
 /**
  * @brief 由于ceres的参数块都是double数组，因此这里把参数块从eigen的表示转成double数组
- * 
+ *
  */
 void Estimator::vector2double()
 {
@@ -662,7 +662,7 @@ void Estimator::vector2double()
 
 /**
  * @brief double -> eigen 同时fix第一帧的yaw和平移，固定了四自由度的零空间
- * 
+ *
  */
 void Estimator::double2vector()
 {
@@ -684,7 +684,7 @@ void Estimator::double2vector()
                                              .toRotationMatrix());
     // yaw角差
     double y_diff = origin_R0.x() - origin_R00.x();
-    //TODO
+    // TODO
     Matrix3d rot_diff = Utility::ypr2R(Vector3d(y_diff, 0, 0));
     // 接近万象节死锁的问题 https://blog.csdn.net/AndrewFan/article/details/60981437
     if (abs(abs(origin_R0.y()) - 90) < 1.0 || abs(abs(origin_R00.y()) - 90) < 1.0)
@@ -758,9 +758,9 @@ void Estimator::double2vector()
         relo_relative_t = relo_r.transpose() * (Ps[relo_frame_local_index] - relo_t);
         relo_relative_q = relo_r.transpose() * Rs[relo_frame_local_index];
         relo_relative_yaw = Utility::normalizeAngle(Utility::R2ypr(Rs[relo_frame_local_index]).x() - Utility::R2ypr(relo_r).x());
-        //cout << "vins relo " << endl;
-        //cout << "vins relative_t " << relo_relative_t.transpose() << endl;
-        //cout << "vins relative_yaw " <<relo_relative_yaw << endl;
+        // cout << "vins relo " << endl;
+        // cout << "vins relative_t " << relo_relative_t.transpose() << endl;
+        // cout << "vins relative_yaw " <<relo_relative_yaw << endl;
         relocalization_info = 0;
     }
 }
@@ -770,7 +770,7 @@ bool Estimator::failureDetection()
     if (f_manager.last_track_num < 2) // 地图点数目是否足够
     {
         ROS_INFO(" little feature %d", f_manager.last_track_num);
-        //return true;
+        // return true;
     }
     if (Bas[WINDOW_SIZE].norm() > 2.5) // 零偏是否正常
     {
@@ -808,21 +808,21 @@ bool Estimator::failureDetection()
     if (delta_angle > 50) // 两帧姿态变化是否过大
     {
         ROS_INFO(" big delta_angle ");
-        //return true;
+        // return true;
     }
     return false;
 }
 
 /**
  * @brief 进行非线性优化
- * 
+ *
  */
 void Estimator::optimization()
 {
     // 借助ceres进行非线性优化
     ceres::Problem problem;
     ceres::LossFunction *loss_function;
-    //loss_function = new ceres::HuberLoss(1.0);
+    // loss_function = new ceres::HuberLoss(1.0);
     loss_function = new ceres::CauchyLoss(1.0);
     // Step 1 定义待优化的参数块，类似g2o的顶点
     // 参数块 1： 滑窗中位姿包括位置和姿态，共11帧
@@ -851,7 +851,7 @@ void Estimator::optimization()
     if (ESTIMATE_TD)
     {
         problem.AddParameterBlock(para_Td[0], 1);
-        //problem.SetParameterBlockConstant(para_Td[0]);
+        // problem.SetParameterBlockConstant(para_Td[0]);
     }
     // 实际上还有地图点，其实平凡的参数块不需要调用AddParameterBlock，增加残差块接口时会自动绑定
     TicToc t_whole, t_prepare;
@@ -863,6 +863,7 @@ void Estimator::optimization()
     {
         // construct new marginlization_factor
         MarginalizationFactor *marginalization_factor = new MarginalizationFactor(last_marginalization_info);
+        // 传递残差模块信息，代价函数、损失函数（为空表示单位函数）、待优化的参数
         problem.AddResidualBlock(marginalization_factor, NULL,
                                  last_marginalization_parameter_blocks);
     }
@@ -888,7 +889,7 @@ void Estimator::optimization()
             continue;
 
         ++feature_index;
-        // 第一个观测到这个特征点的帧idx
+        // 第一个观测到这个特征点的imu索引
         int imu_i = it_per_id.start_frame, imu_j = imu_i - 1;
         // 特征点在第一个帧下的归一化相机系坐标
         Vector3d pts_i = it_per_id.feature_per_frame[0].point;
@@ -934,7 +935,7 @@ void Estimator::optimization()
     // 回环检测相关的约束
     if (relocalization_info)
     {
-        //printf("set relocalization factor! \n");
+        // printf("set relocalization factor! \n");
         ceres::LocalParameterization *local_parameterization = new PoseLocalParameterization();
         problem.AddParameterBlock(relo_Pose, SIZE_POSE, local_parameterization); // 需要优化的回环帧位姿
         int retrive_feature_index = 0;
@@ -972,12 +973,12 @@ void Estimator::optimization()
     ceres::Solver::Options options;
 
     options.linear_solver_type = ceres::DENSE_SCHUR;
-    //options.num_threads = 2;
+    // options.num_threads = 2;
     options.trust_region_strategy_type = ceres::DOGLEG;
     options.max_num_iterations = NUM_ITERATIONS;
-    //options.use_explicit_schur_complement = true;
-    //options.minimizer_progress_to_stdout = true;
-    //options.use_nonmonotonic_steps = true;
+    // options.use_explicit_schur_complement = true;
+    // options.minimizer_progress_to_stdout = true;
+    // options.use_nonmonotonic_steps = true;
     if (marginalization_flag == MARGIN_OLD)
         // 下面的边缘化老的操作比较多，因此给他优化时间就少一些
         options.max_solver_time_in_seconds = SOLVER_TIME * 4.0 / 5.0;
@@ -986,7 +987,7 @@ void Estimator::optimization()
     TicToc t_solver;
     ceres::Solver::Summary summary;
     ceres::Solve(options, &problem, &summary); // ceres优化求解
-    //cout << summary.BriefReport() << endl;
+    // cout << summary.BriefReport() << endl;
     ROS_DEBUG("Iterations : %d", static_cast<int>(summary.iterations.size()));
     ROS_DEBUG("solver costs: %f", t_solver.toc());
     // 把优化后double -> eigen
@@ -1329,12 +1330,12 @@ void Estimator::slideWindowOld()
 
 /**
  * @brief 接受回环帧的消息
- * 
- * @param[in] _frame_stamp 
- * @param[in] _frame_index 
- * @param[in] _match_points 
- * @param[in] _relo_t 
- * @param[in] _relo_r 
+ *
+ * @param[in] _frame_stamp
+ * @param[in] _frame_index
+ * @param[in] _match_points
+ * @param[in] _relo_t
+ * @param[in] _relo_r
  */
 void Estimator::setReloFrame(double _frame_stamp, int _frame_index, vector<Vector3d> &_match_points, Vector3d _relo_t, Matrix3d _relo_r)
 {
