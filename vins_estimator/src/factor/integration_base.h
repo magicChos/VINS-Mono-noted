@@ -38,9 +38,9 @@ public:
 
     /**
      * @brief 根据新设置的imu零偏重新对该帧进行预积分
-     * 
-     * @param[in] _linearized_ba 
-     * @param[in] _linearized_bg 
+     *
+     * @param[in] _linearized_ba 加速度偏置
+     * @param[in] _linearized_bg 陀螺仪偏置
      */
     void repropagate(const Eigen::Vector3d &_linearized_ba, const Eigen::Vector3d &_linearized_bg)
     {
@@ -84,10 +84,10 @@ public:
                              Eigen::Vector3d &result_delta_p, Eigen::Quaterniond &result_delta_q, Eigen::Vector3d &result_delta_v,
                              Eigen::Vector3d &result_linearized_ba, Eigen::Vector3d &result_linearized_bg, bool update_jacobian)
     {
-        //ROS_INFO("midpoint integration");
-        // 首先中值积分更新状态量，公式推导（7）
-        //  ^
-        // a_i = delta_q(a_i -b_ai - n_ai)  这里没有考虑噪声所以n_ai = 0
+        // ROS_INFO("midpoint integration");
+        //  首先中值积分更新状态量，公式推导（7）
+        //   ^
+        //  a_i = delta_q(a_i -b_ai - n_ai)  这里没有考虑噪声所以n_ai = 0
         Vector3d un_acc_0 = delta_q * (_acc_0 - linearized_ba);
         Vector3d un_acc_1 = result_delta_q * (_acc_1 - linearized_ba);
         Vector3d un_acc = 0.5 * (un_acc_0 + un_acc_1);
@@ -116,7 +116,7 @@ public:
             R_w_x << 0, -w_x(2), w_x(1),
                 w_x(2), 0, -w_x(0),
                 -w_x(1), w_x(0), 0;
-            
+
             // 加速度a_k三维向量构成的反对称矩阵
             R_a_0_x << 0, -a_0_x(2), a_0_x(1),
                 a_0_x(2), 0, -a_0_x(0),
@@ -147,7 +147,7 @@ public:
             F.block<3, 3>(6, 12) = -0.5 * result_delta_q.toRotationMatrix() * R_a_1_x * _dt * -_dt;
             F.block<3, 3>(9, 9) = Matrix3d::Identity();
             F.block<3, 3>(12, 12) = Matrix3d::Identity();
-            //cout<<"A"<<endl<<A<<endl;
+            // cout<<"A"<<endl<<A<<endl;
 
             // G
             MatrixXd V = MatrixXd::Zero(15, 18);
@@ -164,9 +164,9 @@ public:
             V.block<3, 3>(9, 12) = MatrixXd::Identity(3, 3) * _dt;
             V.block<3, 3>(12, 15) = MatrixXd::Identity(3, 3) * _dt;
 
-            //step_jacobian = F;
-            //step_V = V;
-            // vins-mono推导文档公式（19,20）
+            // step_jacobian = F;
+            // step_V = V;
+            //  vins-mono推导文档公式（19,20）
             jacobian = F * jacobian;
             covariance = F * covariance * F.transpose() + V * noise * V.transpose();
         }
@@ -188,8 +188,8 @@ public:
                             result_delta_p, result_delta_q, result_delta_v,
                             result_linearized_ba, result_linearized_bg, 1);
 
-        //checkJacobian(_dt, acc_0, gyr_0, acc_1, gyr_1, delta_p, delta_q, delta_v,
-        //                    linearized_ba, linearized_bg);
+        // checkJacobian(_dt, acc_0, gyr_0, acc_1, gyr_1, delta_p, delta_q, delta_v,
+        //                     linearized_ba, linearized_bg);
         delta_p = result_delta_p;
         delta_q = result_delta_q;
         delta_v = result_delta_v;
@@ -283,9 +283,9 @@ public:
         Vector3d omg = _gyr_1 - linearized_bg;
         omg = omg * _dt / 2;
         Quaterniond dR(1, omg(0), omg(1), omg(2));
-        result_delta_q = (delta_q * dR);   
+        result_delta_q = (delta_q * dR);
         result_linearized_ba = linearized_ba;
-        result_linearized_bg = linearized_bg;         
+        result_linearized_bg = linearized_bg;
 
         if(update_jacobian)
         {
@@ -335,10 +335,10 @@ public:
             covariance = F * covariance * F.transpose() + V * noise * V.transpose();
         }
 
-    }     
+    }
 
 
-    void checkJacobian(double _dt, const Eigen::Vector3d &_acc_0, const Eigen::Vector3d &_gyr_0, 
+    void checkJacobian(double _dt, const Eigen::Vector3d &_acc_0, const Eigen::Vector3d &_gyr_0,
                                    const Eigen::Vector3d &_acc_1, const Eigen::Vector3d &_gyr_1,
                             const Eigen::Vector3d &delta_p, const Eigen::Quaterniond &delta_q, const Eigen::Vector3d &delta_v,
                             const Eigen::Vector3d &linearized_ba, const Eigen::Vector3d &linearized_bg)

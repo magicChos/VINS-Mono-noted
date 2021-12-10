@@ -93,7 +93,7 @@ void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time)
         cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(3.0, cv::Size(8, 8));
         TicToc t_c;
         clahe->apply(_img, img);
-        ROS_DEBUG("CLAHE costs: %fms", t_c.toc());
+        ROS_INFO("CLAHE costs: %fms", t_c.toc());
     }
     else
         img = _img;
@@ -120,6 +120,7 @@ void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time)
         // 调用opencv函数进行光流追踪
         // Step 1 通过opencv光流追踪给的状态位剔除outlier
         cv::calcOpticalFlowPyrLK(cur_img, forw_img, cur_pts, forw_pts, status, err, cv::Size(21, 21), 3);
+        ROS_INFO("after flow forw_pts size = %d" , forw_pts.size());
 
         for (int i = 0; i < int(forw_pts.size()); i++)
             // Step 2 通过图像边界剔除outlier
@@ -131,7 +132,7 @@ void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time)
         reduceVector(ids, status);        // 特征点的id
         reduceVector(cur_un_pts, status); // 去畸变后的坐标
         reduceVector(track_cnt, status);  // 追踪次数
-        ROS_DEBUG("temporal optical flow costs: %fms", t_o.toc());
+        ROS_INFO("temporal optical flow costs: %fms", t_o.toc());
     }
     // 被追踪到的是上一帧就存在的，因此追踪数+1
     for (auto &n : track_cnt)
@@ -141,12 +142,12 @@ void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time)
     {
         // Step 3 通过对级约束来剔除outlier
         rejectWithF();
-        ROS_DEBUG("set mask begins");
+        ROS_INFO("set mask begins");
         TicToc t_m;
         setMask();
-        ROS_DEBUG("set mask costs %fms", t_m.toc());
+        ROS_INFO("set mask costs %fms", t_m.toc());
 
-        ROS_DEBUG("detect feature begins");
+        ROS_INFO("detect feature begins");
         TicToc t_t;
         // ?
         int n_max_cnt = MAX_CNT - static_cast<int>(forw_pts.size());
@@ -164,12 +165,12 @@ void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time)
         }
         else
             n_pts.clear();
-        ROS_DEBUG("detect feature costs: %fms", t_t.toc());
+        ROS_INFO("detect feature costs: %fms", t_t.toc());
 
-        ROS_DEBUG("add feature begins");
+        ROS_INFO("add feature begins");
         TicToc t_a;
         addPoints();
-        ROS_DEBUG("selectFeature costs: %fms", t_a.toc());
+        ROS_INFO("selectFeature costs: %fms", t_a.toc());
     }
     prev_img = cur_img;
     prev_pts = cur_pts;
@@ -189,7 +190,7 @@ void FeatureTracker::rejectWithF()
     // 当前被追踪到的光流至少8个点
     if (forw_pts.size() >= 8)
     {
-        ROS_DEBUG("FM ransac begins");
+        ROS_INFO("FM ransac begins");
         TicToc t_f;
 
         // 记录虚拟相机的像素坐标
@@ -226,8 +227,8 @@ void FeatureTracker::rejectWithF()
         reduceVector(cur_un_pts, status);
         reduceVector(ids, status);
         reduceVector(track_cnt, status);
-        ROS_DEBUG("FM ransac: %d -> %lu: %f", size_a, forw_pts.size(), 1.0 * forw_pts.size() / size_a);
-        ROS_DEBUG("FM ransac costs: %fms", t_f.toc());
+        ROS_INFO("FM ransac: %d -> %lu: %f", size_a, forw_pts.size(), 1.0 * forw_pts.size() / size_a);
+        ROS_INFO("FM ransac costs: %fms", t_f.toc());
     }
 }
 

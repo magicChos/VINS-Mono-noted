@@ -61,7 +61,7 @@ public:
     // 能够观测到某个特征点的所有相关帧
     vector<FeaturePerFrame> feature_per_frame; 
 
-    // 该特征出现的次数
+    // 该特征出现的次数(被多少帧观测到)
     int used_num;
     bool is_outlier;
     // 是否Marg边缘化
@@ -151,6 +151,8 @@ private:
      * @return double 
      */
     double compensatedParallax2(const FeaturePerId &it_per_id, int frame_count);
+
+    // 记录imu到世界坐标系的变换矩阵
     const Matrix3d *Rs;
     Matrix3d ric[NUM_OF_CAM];
 };

@@ -88,7 +88,7 @@ void Estimator::clearState()
 
 /**
  * @brief 对imu数据进行处理，包括更新预积分量，和提供优化状态量的初始值
- * @param[in] dt 
+ * @param[in] dt 两帧imu时间间隔
  * @param[in] linear_acceleration 
  * @param[in] angular_velocity 
  */
@@ -324,6 +324,7 @@ bool Estimator::initialStructure()
         // 遍历观测到该特征点的所有帧
         for (auto &it_per_frame : it_per_id.feature_per_frame)
         {
+            // ?
             imu_j++;
             Vector3d pts_j = it_per_frame.point;
             // 索引以及各自坐标系下的坐标

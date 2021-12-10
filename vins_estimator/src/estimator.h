@@ -29,8 +29,6 @@ public:
 
     void setParameter();
 
-    // interface
-    // 进行第k-1帧和第k帧的预积分
     void processIMU(double t, const Vector3d &linear_acceleration, const Vector3d &angular_velocity);
 
     // 表示当前帧跟踪到上一帧中的特征点集合，也就是当前帧观测到的所有的路标点（不包括在当前帧新提取的点）
@@ -103,7 +101,7 @@ public:
     Vector3d Bas[(WINDOW_SIZE + 1)];
     Vector3d Bgs[(WINDOW_SIZE + 1)];
 
-    // ?
+    // imu时间间隔？
     double td;
 
     Matrix3d back_R0, last_R, last_R0;

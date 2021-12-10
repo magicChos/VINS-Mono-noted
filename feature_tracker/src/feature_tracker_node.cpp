@@ -69,6 +69,9 @@ void img_callback(const sensor_msgs::ImageConstPtr &img_msg)
     else
         PUB_THIS_FRAME = false;
 
+    ROS_INFO("PUB_THIS_FRAME = %d" , PUB_THIS_FRAME);
+    ROS_DEBUG("PUB_THIS_FRAME = %d" , PUB_THIS_FRAME);
+
     // 即使不发布也是正常做光流追踪的！光流对图像的变化要求尽可能小
 
     cv_bridge::CvImageConstPtr ptr;
@@ -92,7 +95,7 @@ void img_callback(const sensor_msgs::ImageConstPtr &img_msg)
     TicToc t_r;
     for (int i = 0; i < NUM_OF_CAM; i++)
     {
-        ROS_DEBUG("processing camera %d", i);
+        ROS_INFO("processing camera %d", i);
         if (i != 1 || !STEREO_TRACK)
             trackerData[i].readImage(ptr->image.rowRange(ROW * i, ROW * (i + 1)), img_msg->header.stamp.toSec());
         else
@@ -139,7 +142,9 @@ void img_callback(const sensor_msgs::ImageConstPtr &img_msg)
         {
             auto &un_pts = trackerData[i].cur_un_pts;         // 去畸变的归一化相机坐标系
             auto &cur_pts = trackerData[i].cur_pts;           // 像素坐标
-            auto &ids = trackerData[i].ids;                   // id
+
+            // 跟踪特征点的id
+            auto &ids = trackerData[i].ids;                
             auto &pts_velocity = trackerData[i].pts_velocity; // 归一化坐标下的速度
             for (unsigned int j = 0; j < ids.size(); j++)
             {
@@ -167,7 +172,7 @@ void img_callback(const sensor_msgs::ImageConstPtr &img_msg)
         feature_points->channels.push_back(v_of_point);
         feature_points->channels.push_back(velocity_x_of_point);
         feature_points->channels.push_back(velocity_y_of_point);
-        ROS_DEBUG("publish %f, at %f", feature_points->header.stamp.toSec(), ros::Time::now().toSec());
+        ROS_INFO("publish %f, at %f", feature_points->header.stamp.toSec(), ros::Time::now().toSec());
         // skip the first image; since no optical speed on frist image
         if (!init_pub)
         {
@@ -214,6 +219,7 @@ void img_callback(const sensor_msgs::ImageConstPtr &img_msg)
         }
     }
     ROS_INFO("whole feature tracker processing costs: %f", t_r.toc());
+    ROS_INFO("------------------------end------------------------");
 }
 
 int main(int argc, char **argv)

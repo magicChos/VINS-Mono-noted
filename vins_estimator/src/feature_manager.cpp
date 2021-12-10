@@ -249,14 +249,18 @@ VectorXd FeatureManager::getDepthVector()
 
 /**
  * @brief 利用观测到该特征点的所有位姿来三角化特征点
- * 
+ * AX = 0
+ *     |xP3T - P1T|
+ * A = |yP3T - P2T|    参考https://www.itdaan.com/blog/2017/06/02/ad33f2776b5ede76837066085914d0ad.html
+ *     |x'P3'T - P'1T|
+ *     |y'P3'T - P'2T|
  * @param[in] Ps 
- * @param[in] tic 
- * @param[in] ric 
+ * @param[in] tic 相机到imu的平移
+ * @param[in] ric 相机到imu的变换矩阵
  */
 void FeatureManager::triangulate(Vector3d Ps[], Vector3d tic[], Matrix3d ric[])
 {
-    // 遍历每一个特征点
+    // 遍历每一个路标点
     for (auto &it_per_id : feature)
     {
         it_per_id.used_num = it_per_id.feature_per_frame.size();
@@ -273,6 +277,8 @@ void FeatureManager::triangulate(Vector3d Ps[], Vector3d tic[], Matrix3d ric[])
 
         Eigen::Matrix<double, 3, 4> P0;
         // Twi -> Twc,第一个观察到这个特征点的KF的位姿
+        // R0,t0为相机坐标系到世界坐标系下的变换
+        // Twc = Twi * Tic
         Eigen::Vector3d t0 = Ps[imu_i] + Rs[imu_i] * tic[0];
         Eigen::Matrix3d R0 = Rs[imu_i] * ric[0];
         P0.leftCols<3>() = Eigen::Matrix3d::Identity();
@@ -282,15 +288,22 @@ void FeatureManager::triangulate(Vector3d Ps[], Vector3d tic[], Matrix3d ric[])
         {
             imu_j++;
             // 得到该KF的相机坐标系位姿
+            // 第imu_j帧imu到世界坐标系的变换矩阵
             Eigen::Vector3d t1 = Ps[imu_j] + Rs[imu_j] * tic[0];
             Eigen::Matrix3d R1 = Rs[imu_j] * ric[0];
             // T_w_cj -> T_c0_cj
+            // cj到c0的变换矩阵
+            // Tc0cj = Tc0w * Twcj
             Eigen::Vector3d t = R0.transpose() * (t1 - t0);
             Eigen::Matrix3d R = R0.transpose() * R1;
+
+            // c0到cj的变换矩阵
             Eigen::Matrix<double, 3, 4> P;
             // T_c0_cj -> T_cj_c0相当于把c0当作世界系
             P.leftCols<3>() = R.transpose();
             P.rightCols<1>() = -R.transpose() * t;
+
+            // 特征点的齐次坐标
             Eigen::Vector3d f = it_per_frame.point.normalized();
             // 构建超定方程的其中两个方程
             svd_A.row(svd_idx++) = f[0] * P.row(2) - f[2] * P.row(0);

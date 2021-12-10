@@ -4,6 +4,8 @@
 #include <cstdlib>
 #include <chrono>
 
+#define  PRINTLOG(A) std::cout<<__DATE__<<" "<<__TIME__<<" "<<__LINE__<<" "<< #A<<":"<<(A)<<std::endl;
+
 class TicToc
 {
   public:

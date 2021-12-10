@@ -3,7 +3,7 @@
 /**
  * @brief 求解陀螺仪零偏，同时利用求出来的零偏重新进行预积分
  *
- * @param[in] all_image_frame
+ * @param[in] all_image_frame 所有帧的位姿和对应的预积分量
  * @param[out] Bgs
  */
 void solveGyroscopeBias(map<double, ImageFrame> &all_image_frame, Vector3d *Bgs)
@@ -23,10 +23,16 @@ void solveGyroscopeBias(map<double, ImageFrame> &all_image_frame, Vector3d *Bgs)
         tmp_A.setZero();
         VectorXd tmp_b(3);
         tmp_b.setZero();
+
+        // j到i的变换矩阵
         Eigen::Quaterniond q_ij(frame_i->second.R.transpose() * frame_j->second.R);
         tmp_A = frame_j->second.pre_integration->jacobian.template block<3, 3>(O_R, O_BG);
         // 公式（30）右侧
         tmp_b = 2 * (frame_j->second.pre_integration->delta_q.inverse() * q_ij).vec();
+
+        // tmp_A1 * X = b1 (1)
+        // tmp_A2 * X = b2 (2)
+        // （1）和（2）相加 (tmp_A1+tmp_A2) * X = b1 + b2
         A += tmp_A.transpose() * tmp_A;
         b += tmp_A.transpose() * tmp_b;
     }
@@ -144,7 +150,7 @@ void RefineGravity(map<double, ImageFrame> &all_image_frame, Vector3d &g, Vector
 /**
  * @brief 求解各帧的速度，枢纽帧的重力方向，以及尺度
  *
- * @param[in] all_image_frame
+ * @param[in] all_image_frame 所有帧的位姿和预积分量
  * @param[in] g
  * @param[in] x
  * @return true

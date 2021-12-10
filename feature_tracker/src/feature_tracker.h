@@ -68,10 +68,10 @@ public:
   // 为当前帧相对前一帧特征点沿x,y方向的像素移动速度
   vector<cv::Point2f> pts_velocity;
 
-  // ?
+  // 记录跟踪特征点的id
   vector<int> ids;
 
-  // 记录特征点被跟踪的次数
+  // 记录每个特征点被跟踪的次数
   vector<int> track_cnt;
   
   map<int, cv::Point2f> cur_un_pts_map;

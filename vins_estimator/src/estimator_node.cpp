@@ -22,9 +22,12 @@ queue<sensor_msgs::PointCloudConstPtr> feature_buf;
 queue<sensor_msgs::PointCloudConstPtr> relo_buf;
 int sum_of_wait = 0;
 
+// 数据buf锁
 std::mutex m_buf;
+// 状态锁
 std::mutex m_state;
 std::mutex i_buf;
+// 估计器锁
 std::mutex m_estimator;
 
 double latest_time;
@@ -36,6 +39,7 @@ Eigen::Vector3d tmp_V;
 Eigen::Vector3d tmp_Ba;
 // 记录当前陀螺仪的偏置
 Eigen::Vector3d tmp_Bg;
+// 上一时刻加速度
 Eigen::Vector3d acc_0;
 
 // 上一时刻陀螺仪角速度
@@ -67,6 +71,8 @@ void predict(const sensor_msgs::ImuConstPtr &imu_msg)
     double dx = imu_msg->linear_acceleration.x;
     double dy = imu_msg->linear_acceleration.y;
     double dz = imu_msg->linear_acceleration.z;
+
+    // 当前时刻加速度
     Eigen::Vector3d linear_acceleration{dx, dy, dz};
     // 得到角速度
     double rx = imu_msg->angular_velocity.x;
@@ -118,6 +124,9 @@ void update()
 std::vector<std::pair<std::vector<sensor_msgs::ImuConstPtr>, sensor_msgs::PointCloudConstPtr>>
 getMeasurements()
 {
+    // imu    *   *
+    // image    *
+    // 记录包围图像的所有imu数据
     std::vector<std::pair<std::vector<sensor_msgs::ImuConstPtr>, sensor_msgs::PointCloudConstPtr>> measurements;
 
     while (true)
@@ -259,7 +268,8 @@ void process()
         std::unique_lock<std::mutex> lk(m_buf);
         con.wait(lk, [&]
                  { return (measurements = getMeasurements()).size() != 0; });
-        lk.unlock();        // 数据buffer的锁解锁，回调可以继续塞数据了
+        lk.unlock(); // 数据buffer的锁解锁，回调可以继续塞数据了
+
         m_estimator.lock(); // 进行后端求解，不能和复位重启冲突
         // 给予范围的for循环，这里就是遍历每组image imu组合
         for (auto &measurement : measurements)
@@ -323,6 +333,7 @@ void process()
             }
             if (relo_msg != NULL) // 有效回环信息
             {
+                // 记录回环帧中的所有特征点的归一化坐标
                 vector<Vector3d> match_points;
                 double frame_stamp = relo_msg->header.stamp.toSec(); // 回环的当前帧时间戳
                 for (unsigned int i = 0; i < relo_msg->points.size(); i++)
@@ -354,6 +365,7 @@ void process()
             for (unsigned int i = 0; i < img_msg->points.size(); i++)
             {
                 int v = img_msg->channels[0].values[i] + 0.5;
+                // 特征点id
                 int feature_id = v / NUM_OF_CAM;
                 int camera_id = v % NUM_OF_CAM;
                 double x = img_msg->points[i].x; // 去畸变后归一滑像素坐标
@@ -364,6 +376,7 @@ void process()
                 double velocity_x = img_msg->channels[3].values[i]; // 特征点速度
                 double velocity_y = img_msg->channels[4].values[i];
                 ROS_ASSERT(z == 1); // 检查是不是归一化
+                
                 Eigen::Matrix<double, 7, 1> xyz_uv_velocity;
                 xyz_uv_velocity << x, y, z, p_u, p_v, velocity_x, velocity_y;
                 image[feature_id].emplace_back(camera_id, xyz_uv_velocity);
