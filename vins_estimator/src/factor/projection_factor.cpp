@@ -9,7 +9,7 @@ ProjectionFactor::ProjectionFactor(const Eigen::Vector3d &_pts_i, const Eigen::V
     Eigen::Vector3d b1, b2;
     Eigen::Vector3d a = pts_j.normalized();
     Eigen::Vector3d tmp(0, 0, 1);
-    if(a == tmp)
+    if (a == tmp)
         tmp << 1, 0, 0;
     b1 = (tmp - a * (a.transpose() * tmp)).normalized();
     b2 = a.cross(b1);
@@ -44,15 +44,16 @@ bool ProjectionFactor::Evaluate(double const *const *parameters, double *residua
     Eigen::Vector3d pts_camera_j = qic.inverse() * (pts_imu_j - tic);
     Eigen::Map<Eigen::Vector2d> residual(residuals);
 
-#ifdef UNIT_SPHERE_ERROR 
+#ifdef UNIT_SPHERE_ERROR
     // 把归一化平面上的重投影误差投影到unit sphere上的好处就是支持所有类型的相机，求取切平面上的误差
-    residual =  tangent_base * (pts_camera_j.normalized() - pts_j.normalized());
+    // 论文公式25
+    residual = tangent_base * (pts_camera_j.normalized() - pts_j.normalized());
 #else
-    double dep_j = pts_camera_j.z();    // 第j帧相机系下深度
-    residual = (pts_camera_j / dep_j).head<2>() - pts_j.head<2>();  // 重投影误差
+    double dep_j = pts_camera_j.z();                               // 第j帧相机系下深度
+    residual = (pts_camera_j / dep_j).head<2>() - pts_j.head<2>(); // 重投影误差
 #endif
 
-    residual = sqrt_info * residual;    // 误差乘上信息矩阵
+    residual = sqrt_info * residual; // 误差乘上信息矩阵
 
     if (jacobians)
     {
@@ -67,13 +68,13 @@ bool ProjectionFactor::Evaluate(double const *const *parameters, double *residua
         x1 = pts_camera_j(0);
         x2 = pts_camera_j(1);
         x3 = pts_camera_j(2);
-        norm_jaco << 1.0 / norm - x1 * x1 / pow(norm, 3), - x1 * x2 / pow(norm, 3),            - x1 * x3 / pow(norm, 3),
-                     - x1 * x2 / pow(norm, 3),            1.0 / norm - x2 * x2 / pow(norm, 3), - x2 * x3 / pow(norm, 3),
-                     - x1 * x3 / pow(norm, 3),            - x2 * x3 / pow(norm, 3),            1.0 / norm - x3 * x3 / pow(norm, 3);
+        norm_jaco << 1.0 / norm - x1 * x1 / pow(norm, 3), -x1 * x2 / pow(norm, 3), -x1 * x3 / pow(norm, 3),
+            -x1 * x2 / pow(norm, 3), 1.0 / norm - x2 * x2 / pow(norm, 3), -x2 * x3 / pow(norm, 3),
+            -x1 * x3 / pow(norm, 3), -x2 * x3 / pow(norm, 3), 1.0 / norm - x3 * x3 / pow(norm, 3);
         reduce = tangent_base * norm_jaco;
 #else
         // 公式（70）
-        reduce << 1. / dep_j, 0, -pts_camera_j(0) / (dep_j * dep_j),    // 重投影误差对j帧相机坐标系下坐标求导
+        reduce << 1. / dep_j, 0, -pts_camera_j(0) / (dep_j * dep_j), // 重投影误差对j帧相机坐标系下坐标求导
             0, 1. / dep_j, -pts_camera_j(1) / (dep_j * dep_j);
 #endif
         reduce = sqrt_info * reduce;
@@ -167,10 +168,9 @@ void ProjectionFactor::check(double **parameters)
     Eigen::Vector3d pts_imu_j = Qj.inverse() * (pts_w - Pj);
     Eigen::Vector3d pts_camera_j = qic.inverse() * (pts_imu_j - tic);
 
-
     Eigen::Vector2d residual;
-#ifdef UNIT_SPHERE_ERROR 
-    residual =  tangent_base * (pts_camera_j.normalized() - pts_j.normalized());
+#ifdef UNIT_SPHERE_ERROR
+    residual = tangent_base * (pts_camera_j.normalized() - pts_j.normalized());
 #else
     double dep_j = pts_camera_j.z();
     residual = (pts_camera_j / dep_j).head<2>() - pts_j.head<2>();
@@ -219,8 +219,8 @@ void ProjectionFactor::check(double **parameters)
         Eigen::Vector3d pts_camera_j = qic.inverse() * (pts_imu_j - tic);
 
         Eigen::Vector2d tmp_residual;
-#ifdef UNIT_SPHERE_ERROR 
-        tmp_residual =  tangent_base * (pts_camera_j.normalized() - pts_j.normalized());
+#ifdef UNIT_SPHERE_ERROR
+        tmp_residual = tangent_base * (pts_camera_j.normalized() - pts_j.normalized());
 #else
         double dep_j = pts_camera_j.z();
         tmp_residual = (pts_camera_j / dep_j).head<2>() - pts_j.head<2>();
