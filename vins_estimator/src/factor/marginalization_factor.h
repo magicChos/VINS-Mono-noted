@@ -54,8 +54,24 @@ class MarginalizationInfo
     ~MarginalizationInfo();
     int localSize(int size) const;
     int globalSize(int size) const;
+
+    /**
+     * @brief 添加残差块相关信息（优化变量，待边缘化变量）
+     * 
+     * @param residual_block_info 
+     */
     void addResidualBlockInfo(ResidualBlockInfo *residual_block_info);
+
+    /**
+     * @brief 并更新parameter_block_data
+     * 
+     */
     void preMarginalize();
+
+    /**
+     * @brief 执行边缘化，多线程构造先验项舒尔补AX=b的结构，计算Jacobian和残差
+     * 
+     */
     void marginalize();
     std::vector<double *> getParameterBlocks(std::unordered_map<long, double *> &addr_shift);
 

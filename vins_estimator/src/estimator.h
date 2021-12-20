@@ -56,6 +56,12 @@ public:
     bool visualInitialAlign();
 
     bool relativePose(Matrix3d &relative_R, Vector3d &relative_T, int &l);
+
+    /**
+     * @brief 负责维护滑动窗口
+     * 如果次新帧是关键帧，则边缘化最老帧，将其看到的特征点和IMU数据转化为先验信息，如果次新帧不是关键帧，则舍弃视觉测量而保留IMU测量值，从而保证IMU预积分的连贯性。
+     * 
+     */
     void slideWindow();
 
     /*********************************
@@ -66,7 +72,10 @@ public:
     void slideWindowNew();
     void slideWindowOld();
 
-    // 基于滑动窗口的紧耦合的非线性优化，残差项的构造和求解
+    /**
+     * @brief 负责利用边缘化残差构建优化模型，而且它负责整个系统所有的优化工作，边缘化残差的使用只是它功能的一部分
+     * 
+     */
     void optimization();
     void vector2double();
     void double2vector();

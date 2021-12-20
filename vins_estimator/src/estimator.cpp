@@ -813,10 +813,6 @@ bool Estimator::failureDetection()
     return false;
 }
 
-/**
- * @brief 进行非线性优化
- *
- */
 void Estimator::optimization()
 {
     // 借助ceres进行非线性优化
