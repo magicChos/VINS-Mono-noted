@@ -1,4 +1,4 @@
-FROM ros:kinetic-perception
+FROM ros:melodic-perception
 
 ENV CERES_VERSION="1.12.0"
 ENV CATKIN_WS=/root/catkin_ws
