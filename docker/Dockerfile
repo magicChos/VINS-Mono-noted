@@ -3,6 +3,10 @@ FROM ros:melodic-perception
 ENV CERES_VERSION="1.12.0"
 ENV CATKIN_WS=/root/catkin_ws
 
+# 添加源
+COPY sources.list /etc/apt/sources.list
+# RUN apt-get update -y && apt-get install --assume-yes apt-utils && apt-get install -y vim
+
       # set up thread number for building
 RUN   if [ "x$(nproc)" = "x1" ] ; then export USE_PROC=1 ; \
       else export USE_PROC=$(($(nproc)/2)) ; fi && \

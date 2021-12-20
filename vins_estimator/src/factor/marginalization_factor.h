@@ -22,8 +22,9 @@ struct ResidualBlockInfo
 
     ceres::CostFunction *cost_function;
     ceres::LossFunction *loss_function;
-    // 优化变量数据
+    // 优化变量内存地址
     std::vector<double *> parameter_blocks;
+    //需要被边缘化的变量地址的id，也就是上面这个vector的id
     std::vector<int> drop_set;
 
     double **raw_jacobians;
@@ -58,18 +59,27 @@ class MarginalizationInfo
     void marginalize();
     std::vector<double *> getParameterBlocks(std::unordered_map<long, double *> &addr_shift);
 
+    //保存了视觉观测项，imu观测项以及上一次的边缘化项，从中去分离出需要边缘化的状态量和需要保留的状态量
     std::vector<ResidualBlockInfo *> factors;
+
+    // m为要边缘化的变量个数，n为要保留下来的变量个数
     int m, n;
+    // <优化变量内存地址 , localSize>
     std::unordered_map<long, int> parameter_block_size; //global size   // 地址->global size
     int sum_block_size;
+    // < 优化变量内存地址，在矩阵中的id>
     std::unordered_map<long, int> parameter_block_idx; //local size // 地址->参数排列的顺序idx
+    // < 优化变量内存地址，数据>
     std::unordered_map<long, double *> parameter_block_data;    // 地址->参数块实际内容的地址
 
-    std::vector<int> keep_block_size; //global size
+    // 上一次边缘化后留下的参数块大小
+    std::vector<int> keep_block_size;
     std::vector<int> keep_block_idx;  //local size
     std::vector<double *> keep_block_data;
 
+    // 边缘化得到的雅可比矩阵
     Eigen::MatrixXd linearized_jacobians;
+    // 边缘化得到的残差
     Eigen::VectorXd linearized_residuals;
     const double eps = 1e-8;
 
