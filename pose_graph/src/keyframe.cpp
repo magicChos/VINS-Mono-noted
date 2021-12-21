@@ -101,11 +101,6 @@ KeyFrame::KeyFrame(double _time_stamp, int _index, Vector3d &_vio_T_w_i, Matrix3
 	brief_descriptors = _brief_descriptors;
 }
 
-/**
- * @brief 计算已有特征点的描述子
- * 70个点的描述
- * 
- */
 void KeyFrame::computeWindowBRIEFPoint()
 {
 	// 定义一个描述子计算的对象
@@ -119,8 +114,7 @@ void KeyFrame::computeWindowBRIEFPoint()
 	extractor(image, window_keypoints, window_brief_descriptors);	// 计算VIO节点提取的特征点的描述子
 }
 
-// 额外提取fast特征点并计算描述子
-// 新的500个点
+
 void KeyFrame::computeBRIEFPoint()
 {
 	BriefExtractor extractor(BRIEF_PATTERN_FILE.c_str());
@@ -154,18 +148,6 @@ void BriefExtractor::operator() (const cv::Mat &im, vector<cv::KeyPoint> &keys, 
   m_brief.compute(im, keys, descriptors);	// 调用dbow的接口计算描述子
 }
 
-/**
- * @brief 暴力匹配法，通过遍历所有的候选描述子得到最佳匹配
- * 
- * @param[in] window_descriptor 当前帧的一个描述子
- * @param[in] descriptors_old 回环帧的描述子集合
- * @param[in] keypoints_old 回环帧像素坐标集合
- * @param[in] keypoints_old_norm 回环帧归一化坐标集合
- * @param[out] best_match 最佳匹配的像素坐标
- * @param[out] best_match_norm 最佳匹配的归一化相机坐标
- * @return true 
- * @return false 
- */
 bool KeyFrame::searchInAera(const BRIEF::bitset window_descriptor,
                             const std::vector<BRIEF::bitset> &descriptors_old,
                             const std::vector<cv::KeyPoint> &keypoints_old,
@@ -198,16 +180,7 @@ bool KeyFrame::searchInAera(const BRIEF::bitset window_descriptor,
       return false;
 }
 
-/**
- * @brief 将当前帧的描述子依次和回环帧描述子进行匹配，得到匹配结果
- * 
- * @param[out] matched_2d_old 匹配回环帧点的像素坐标集合
- * @param[out] matched_2d_old_norm 匹配回环帧点的归一化相机坐标集合
- * @param[out] status 状态位
- * @param[in] descriptors_old 回环帧的描述子集合
- * @param[in] keypoints_old 回环帧的像素坐标
- * @param[in] keypoints_old_norm 回环帧的归一化坐标
- */
+
 void KeyFrame::searchByBRIEFDes(std::vector<cv::Point2f> &matched_2d_old,
 								std::vector<cv::Point2f> &matched_2d_old_norm,
                                 std::vector<uchar> &status,
@@ -327,13 +300,6 @@ void KeyFrame::PnPRANSAC(const vector<cv::Point2f> &matched_2d_old_norm,
 
 }
 
-/**
- * @brief 寻找两帧之间联系，确定是否回环
- * 
- * @param[in] old_kf 
- * @return true 
- * @return false 
- */
 bool KeyFrame::findConnection(KeyFrame* old_kf)
 {
 	TicToc tmp_t;

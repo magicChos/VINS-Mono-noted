@@ -38,7 +38,7 @@ public:
     /**
      * @brief 实现了视觉与IMU的初始化以及非线性优化的紧耦合
      * @param [in] image:某帧所有特征点的[camera_id,[x,y,z,u,v,vx,vy]]构成的map,索引为feature_id
-     * @param [in] header 
+     * @param [in] header
      */
     void processImage(const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image,
                       const std_msgs::Header &header);
@@ -50,8 +50,8 @@ public:
 
     /**
      * @brief 实现了陀螺仪的偏置校准（加速度偏置没有处理），计算速度V、重力g和尺度s
-     * @return true 
-     * @return false 
+     * @return true
+     * @return false
      */
     bool visualInitialAlign();
 
@@ -60,7 +60,7 @@ public:
     /**
      * @brief 负责维护滑动窗口
      * 如果次新帧是关键帧，则边缘化最老帧，将其看到的特征点和IMU数据转化为先验信息，如果次新帧不是关键帧，则舍弃视觉测量而保留IMU测量值，从而保证IMU预积分的连贯性。
-     * 
+     *
      */
     void slideWindow();
 
@@ -70,15 +70,31 @@ public:
     void solveOdometry();
 
     void slideWindowNew();
+
+    /**
+     * @brief 首次在原来最老帧出现的特征点转移到现在现在最老帧
+     *
+     */
     void slideWindowOld();
 
     /**
      * @brief 负责利用边缘化残差构建优化模型，而且它负责整个系统所有的优化工作，边缘化残差的使用只是它功能的一部分
-     * 
+     *
      */
     void optimization();
     void vector2double();
     void double2vector();
+
+    /**
+     * @brief VIO是否正常检测
+     * 1. 地图点被跟踪的数目；
+     * 2. 零偏是否超过阈值
+     * 3. 陀螺仪偏置是否正常
+     * 4. 两帧之间运动是否过大
+     * 5. 两帧之间姿态变化是否过大
+     * @return true
+     * @return false
+     */
     bool failureDetection();
 
     enum SolverFlag
@@ -113,6 +129,7 @@ public:
     // imu时间间隔？
     double td;
 
+    // 保存最老帧信息
     Matrix3d back_R0, last_R, last_R0;
     Vector3d back_P0, last_P, last_P0;
 
@@ -127,7 +144,9 @@ public:
     vector<Vector3d> angular_velocity_buf[(WINDOW_SIZE + 1)];
 
     int frame_count;
-    int sum_of_outlier, sum_of_back, sum_of_front, sum_of_invalid;
+    // 统计一种有多少次marg第一帧的情况
+    int sum_of_back;
+    int sum_of_outlier, sum_of_front, sum_of_invalid;
 
     // 特征管理器对象
     FeatureManager f_manager;
@@ -140,6 +159,7 @@ public:
 
     vector<Vector3d> point_cloud;
     vector<Vector3d> margin_cloud;
+    // 滑窗中关键帧位置
     vector<Vector3d> key_poses;
     double initial_timestamp;
 
@@ -162,7 +182,7 @@ public:
     // 用来坐初始化用的
     IntegrationBase *tmp_pre_integration;
 
-    //relocalization variable
+    // relocalization variable
     bool relocalization_info;
     double relo_frame_stamp;
     double relo_frame_index;

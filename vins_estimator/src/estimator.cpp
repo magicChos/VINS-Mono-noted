@@ -928,7 +928,7 @@ void Estimator::optimization()
 
     ROS_DEBUG("visual measurement count: %d", f_m_cnt);
     ROS_DEBUG("prepare for ceres: %f", t_prepare.toc());
-    // 回环检测相关的约束
+    // 添加闭环检测残差
     if (relocalization_info)
     {
         // printf("set relocalization factor! \n");
@@ -991,6 +991,7 @@ void Estimator::optimization()
     // Step 4 边缘化
     // 科普一下舒尔补
     TicToc t_whole_marginalization;
+    // 如果次新帧是关键帧，将边缘化最老帧，及其看到的路标点和IMU数据，将其转化为先验
     if (marginalization_flag == MARGIN_OLD)
     {
         // 一个用来边缘化操作的对象
@@ -1021,6 +1022,7 @@ void Estimator::optimization()
                                                                            last_marginalization_parameter_blocks,
                                                                            drop_set);
 
+            // 将残差添加到marginalization_info中
             marginalization_info->addResidualBlockInfo(residual_block_info);
         }
         // 只有第1个预积分和待边缘化参数块相连
@@ -1084,7 +1086,7 @@ void Estimator::optimization()
         }
         // 所有的残差块都收集好了
         TicToc t_pre_margin;
-        // 进行预处理
+        // 计算每个残差对应的Jacobian
         marginalization_info->preMarginalize();
         ROS_DEBUG("pre marginalization %f ms", t_pre_margin.toc());
 
@@ -1235,7 +1237,8 @@ void Estimator::slideWindow()
             dt_buf[WINDOW_SIZE].clear();
             linear_acceleration_buf[WINDOW_SIZE].clear();
             angular_velocity_buf[WINDOW_SIZE].clear();
-            // 清空all_image_frame最老帧之前的状态
+
+            // 最老帧之前预积分和图像都删除
             if (true || solver_flag == INITIAL)
             {
                 // 预积分量是堆上的空间，因此需要手动释放
@@ -1301,10 +1304,10 @@ void Estimator::slideWindowNew()
     sum_of_front++;
     f_manager.removeFront(frame_count);
 }
-// real marginalization is removed in solve_ceres()
-// 由于地图点是绑定在第一个看见它的位姿上的，因此需要对被移除的帧看见的地图点进行解绑，以及每个地图点的首个观测帧id减1
+
 void Estimator::slideWindowOld()
 {
+    // 1、统计一共多少次marg滑窗第一帧情况
     sum_of_back++;
 
     bool shift_depth = solver_flag == NON_LINEAR ? true : false;
@@ -1317,11 +1320,11 @@ void Estimator::slideWindowOld()
         R1 = Rs[0] * ric[0];             // 当前最老的相机姿态
         P0 = back_P0 + back_R0 * tic[0]; // 被移除的相机的位置
         P1 = Ps[0] + Rs[0] * tic[0];     // 当前最老的相机位置
-        // 下面要做的事情把被移除帧看见地图点的管理权交给当前的最老帧
+        // 首次在原来最老帧出现的特征点转移到现在现在最老帧
         f_manager.removeBackShiftDepth(R0, P0, R1, P1);
     }
     else
-        f_manager.removeBack();
+        f_manager.removeBack(); // 当最新一帧是关键帧，merg滑窗内最老帧
 }
 
 /**

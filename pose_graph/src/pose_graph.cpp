@@ -6,6 +6,7 @@ PoseGraph::PoseGraph()
     posegraph_visualization = new CameraPoseVisualization(1.0, 0.0, 1.0, 1.0);
     posegraph_visualization->setScale(0.1);
     posegraph_visualization->setLineWidth(0.01);
+
     // 生成一个线程，该线程用于进行4自由度全局优化
     t_optimization = std::thread(&PoseGraph::optimize4DoF, this);
     // 初始化一些变量
@@ -337,7 +338,6 @@ KeyFrame *PoseGraph::getKeyFrame(int index)
         return NULL;
 }
 
-// 进行回环检测，寻找候选的回环帧
 int PoseGraph::detectLoop(KeyFrame *keyframe, int frame_index)
 {
     // put image into image_pool; for visualization
@@ -450,6 +450,7 @@ void PoseGraph::optimize4DoF()
     while (true)
     {
         int cur_index = -1;
+        // 记录最早回环帧索引
         int first_looped_index = -1;
 
         m_optimize_buf.lock();
@@ -471,10 +472,16 @@ void PoseGraph::optimize4DoF()
 
             int max_length = cur_index + 1; // 预设最大长度，总之优化帧数不可能超过这么多
 
-            // w^t_i   w^q_i
+            // 记录关键帧列表中的所有关键到到世界坐标系的平移
             double t_array[max_length][3];
+
+            // 记录关键帧列表中的所有关键到到世界坐标系的旋转四元数
             Quaterniond q_array[max_length];
+
+            // 记录关键帧列表中的所有关键到到世界坐标系的旋转欧拉角
             double euler_array[max_length][3];
+
+            // 记录关键帧列表中的所有关键到sequence
             double sequence_array[max_length];
             // 定义一个ceres优化问题，这里只优化位移和yaw角
             ceres::Problem problem;
@@ -500,8 +507,12 @@ void PoseGraph::optimize4DoF()
                 if ((*it)->index < first_looped_index) // idx小于最早回环帧就算了
                     continue;
                 (*it)->local_index = i; // 这个是在本次优化中的idx
+                // 记录当前关键帧到世界坐标系的四元数
                 Quaterniond tmp_q;
+
+                // 记录当前关键帧到世界坐标系的旋转
                 Matrix3d tmp_r;
+                // 记录当前关键帧到世界坐标系的平移
                 Vector3d tmp_t;
                 (*it)->getVioPose(tmp_t, tmp_r); //  得到位姿
                 tmp_q = tmp_r;

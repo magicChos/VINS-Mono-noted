@@ -127,7 +127,8 @@ void MarginalizationInfo::preMarginalize()
 {
     for (auto it : factors)
     {
-        it->Evaluate(); // 调用这个接口计算各个残差块的残差和雅克比矩阵
+        // 调用这个接口计算各个残差块的残差和雅克比矩阵
+        it->Evaluate(); 
 
         std::vector<int> block_sizes = it->cost_function->parameter_block_sizes(); // 得到每个残差块的参数块大小
         for (int i = 0; i < static_cast<int>(block_sizes.size()); i++)

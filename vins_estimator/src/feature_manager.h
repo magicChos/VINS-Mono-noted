@@ -59,7 +59,7 @@ public:
     // 首次被观测到时，该帧的索引
     int start_frame;
     // 能够观测到某个特征点的所有相关帧
-    vector<FeaturePerFrame> feature_per_frame; 
+    vector<FeaturePerFrame> feature_per_frame;
 
     // 该特征出现的次数(被多少帧观测到)
     int used_num;
@@ -79,9 +79,9 @@ public:
     }
 
     /**
-   * @brief 返回最后一个观测到这个特征点的图像帧ID
-   * @return int 
-   */
+     * @brief 返回最后一个观测到这个特征点的图像帧ID
+     * @return int
+     */
     int endFrame();
 };
 
@@ -98,21 +98,21 @@ public:
     void clearState();
 
     /**
-   * @brief 窗口中被跟踪的特征点数量
-   * @return int 
-   */
+     * @brief 窗口中被跟踪的特征点数量
+     * @return int
+     */
     int getFeatureCount();
 
     bool addFeatureCheckParallax(int frame_count, const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image, double td);
     void debugShow();
     vector<pair<Vector3d, Vector3d>> getCorresponding(int frame_count_l, int frame_count_r);
 
-    //void updateDepth(const VectorXd &x);
+    // void updateDepth(const VectorXd &x);
 
     /**
-   * @brief 设置特征点逆深度
-   * @param x 
-   */
+     * @brief 设置特征点逆深度
+     * @param x
+     */
     void setDepth(const VectorXd &x);
 
     void removeFailures();
@@ -120,19 +120,28 @@ public:
     VectorXd getDepthVector();
 
     void triangulate(Vector3d Ps[], Vector3d tic[], Matrix3d ric[]);
+
+    /**
+     * @brief 首次在原来最老帧出现的特征点转移到现在现在最老帧
+     *
+     * @param[in] marg_R  被移除的位姿
+     * @param[in] marg_P
+     * @param[in] new_R    转接地图点的位姿
+     * @param[in] new_P
+     */
     void removeBackShiftDepth(Eigen::Matrix3d marg_R, Eigen::Vector3d marg_P, Eigen::Matrix3d new_R, Eigen::Vector3d new_P);
 
     /**
-   * @brief 边缘化最老帧，直接将特征点保存的帧号前移
-   * 
-   */
+     * @brief 边缘化最老帧，直接将特征点保存的帧号前移
+     *
+     */
     void removeBack();
 
     /**
-   * @brief 边缘化次新帧，对特征点在次新帧的信息移除
-   * 
-   * @param frame_count 
-   */
+     * @brief 边缘化次新帧，对特征点在次新帧的信息移除
+     *
+     * @param frame_count
+     */
     void removeFront(int frame_count);
     void removeOutlier();
     // 滑窗内所有路标点
@@ -142,13 +151,12 @@ public:
     int last_track_num;
 
 private:
-
     /**
      * @brief 计算某个特征点it_per_id在次新帧和次次新帧的视差ans
      * @brief 判断观测到该特征点的frame中倒数第二帧和倒数第三帧的共视关系 实际是求取该特征点在两帧的归一化平面上的坐标点的距离ans
-     * @param it_per_id 
-     * @param frame_count 
-     * @return double 
+     * @param it_per_id
+     * @param frame_count
+     * @return double
      */
     double compensatedParallax2(const FeaturePerId &it_per_id, int frame_count);
 

@@ -550,6 +550,7 @@ int main(int argc, char **argv)
         VISUALIZE_IMU_FORWARD = fsSettings["visualize_imu_forward"];       // 可视化是否使用imu进行前推
         LOAD_PREVIOUS_POSE_GRAPH = fsSettings["load_previous_pose_graph"]; // 是否加载已有地图
         FAST_RELOCALIZATION = fsSettings["fast_relocalization"];           // 是否快速重定位，这个和VIO结点有交互
+        // vins结果保存路径
         VINS_RESULT_PATH = VINS_RESULT_PATH + "/vins_result_loop.csv";
         std::ofstream fout(VINS_RESULT_PATH, std::ios::out);
         fout.close();

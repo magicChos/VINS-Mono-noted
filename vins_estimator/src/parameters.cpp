@@ -24,6 +24,8 @@ std::string EX_CALIB_RESULT_PATH;
 std::string VINS_RESULT_PATH;
 std::string IMU_TOPIC;
 double ROW, COL;
+
+// ?
 double TD, TR;
 
 template <typename T>

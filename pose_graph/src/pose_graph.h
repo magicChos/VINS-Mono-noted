@@ -37,10 +37,23 @@ class PoseGraph
 public:
 	PoseGraph();
 	~PoseGraph();
+
+	/**
+	 * @brief 发布轨迹path
+	 *
+	 * @param n
+	 */
 	void registerPub(ros::NodeHandle &n);
 	void addKeyFrame(KeyFrame *cur_kf, bool flag_detect_loop);
 	void loadKeyFrame(KeyFrame *cur_kf, bool flag_detect_loop);
 	void loadVocabulary(std::string voc_path);
+
+	/**
+	 * @brief 更新关键帧的回环信息
+	 *
+	 * @param index
+	 * @param _loop_info
+	 */
 	void updateKeyFrameLoop(int index, Eigen::Matrix<double, 8, 1> &_loop_info);
 	KeyFrame *getKeyFrame(int index);
 	nav_msgs::Path path[10];
@@ -50,15 +63,31 @@ public:
 	void loadPoseGraph();
 	void publish();
 	//	VIO位姿和全局位姿的位姿差
+	// 当前帧的VIO位置和优化后的差
 	Vector3d t_drift;
+	// 当前帧的VIO位姿yaw角和优化后的差
 	double yaw_drift;
+	// 当前帧的VIO位姿和优化后的位姿差
 	Matrix3d r_drift;
 	// world frame( base sequence or first sequence)<----> cur sequence frame
 	Vector3d w_t_vio;
 	Matrix3d w_r_vio;
 
 private:
+	/**
+	 * @brief 进行回环检测，寻找候选的回环帧
+	 *
+	 * @param keyframe
+	 * @param frame_index
+	 * @return 若存在则返回回环候选帧的索引
+	 */
 	int detectLoop(KeyFrame *keyframe, int frame_index);
+
+	/**
+	 * @brief 将当前帧的描述子存入字典数据库
+	 *
+	 * @param keyframe
+	 */
 	void addKeyFrameIntoVoc(KeyFrame *keyframe);
 	void optimize4DoF();
 	void updatePath();
@@ -72,6 +101,7 @@ private:
 	std::mutex m_path;
 	// 漂移锁
 	std::mutex m_drift;
+	// 4自由度位姿图优化线程
 	std::thread t_optimization;
 	std::queue<int> optimize_buf;
 
@@ -124,6 +154,15 @@ public:
 	}
 };
 
+/**
+ * @brief 将欧拉角转换为旋转矩阵
+ *
+ * @tparam T
+ * @param yaw
+ * @param pitch
+ * @param roll
+ * @param R
+ */
 template <typename T>
 void YawPitchRollToRotationMatrix(const T yaw, const T pitch, const T roll, T R[9])
 {

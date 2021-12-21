@@ -27,8 +27,8 @@ void FeatureManager::clearState()
 
 /**
  * @brief 得到有效的地图点的数目
- * 
- * @return int 
+ *
+ * @return int
  */
 int FeatureManager::getFeatureCount()
 {
@@ -49,11 +49,11 @@ int FeatureManager::getFeatureCount()
 
 /**
  * @brief 增加特征点信息，同时检查上一帧是否时关键帧
- * @param[in] frame_count 
+ * @param[in] frame_count
  * @param[in] image ：https://img-blog.csdnimg.cn/20200316142254415.png
  * @param[in] td ：图像帧的时间戳
- * @return true 
- * @return false 
+ * @return true
+ * @return false
  */
 bool FeatureManager::addFeatureCheckParallax(int frame_count, const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image, double td)
 {
@@ -141,10 +141,10 @@ void FeatureManager::debugShow()
 
 /**
  * @brief 得到同时被frame_count_l frame_count_r帧看到的特征点在各自的坐标
- * 
- * @param[in] frame_count_l 
- * @param[in] frame_count_r 
- * @return vector<pair<Vector3d, Vector3d>> 
+ *
+ * @param[in] frame_count_l
+ * @param[in] frame_count_r
+ * @return vector<pair<Vector3d, Vector3d>>
  */
 vector<pair<Vector3d, Vector3d>> FeatureManager::getCorresponding(int frame_count_l, int frame_count_r)
 {
@@ -182,7 +182,7 @@ void FeatureManager::setDepth(const VectorXd &x)
 
         // ?????
         it_per_id.estimated_depth = 1.0 / x(++feature_index);
-        //ROS_INFO("feature id %d , start_frame %d, depth %f ", it_per_id->feature_id, it_per_id-> start_frame, it_per_id->estimated_depth);
+        // ROS_INFO("feature id %d , start_frame %d, depth %f ", it_per_id->feature_id, it_per_id-> start_frame, it_per_id->estimated_depth);
         if (it_per_id.estimated_depth < 0)
         {
             it_per_id.solve_flag = 2;
@@ -194,7 +194,7 @@ void FeatureManager::setDepth(const VectorXd &x)
 
 /**
  * @brief 移除一些不能被三角化的点
- * 
+ *
  */
 void FeatureManager::removeFailures()
 {
@@ -209,8 +209,8 @@ void FeatureManager::removeFailures()
 
 /**
  * @brief 把给定的深度赋值给各个特征点作为逆深度
- * 
- * @param[in] x 
+ *
+ * @param[in] x
  */
 void FeatureManager::clearDepth(const VectorXd &x)
 {
@@ -226,8 +226,8 @@ void FeatureManager::clearDepth(const VectorXd &x)
 
 /**
  * @brief 得到特征点的逆深度
- * 
- * @return VectorXd 
+ *
+ * @return VectorXd
  */
 VectorXd FeatureManager::getDepthVector()
 {
@@ -254,7 +254,7 @@ VectorXd FeatureManager::getDepthVector()
  * A = |yP3T - P2T|    参考https://www.itdaan.com/blog/2017/06/02/ad33f2776b5ede76837066085914d0ad.html
  *     |x'P3'T - P'1T|
  *     |y'P3'T - P'2T|
- * @param[in] Ps 
+ * @param[in] Ps
  * @param[in] tic 相机到imu的平移
  * @param[in] ric 相机到imu的变换矩阵
  */
@@ -316,11 +316,11 @@ void FeatureManager::triangulate(Vector3d Ps[], Vector3d tic[], Matrix3d ric[])
         Eigen::Vector4d svd_V = Eigen::JacobiSVD<Eigen::MatrixXd>(svd_A, Eigen::ComputeThinV).matrixV().rightCols<1>();
         // 求解齐次坐标下的深度
         double svd_method = svd_V[2] / svd_V[3];
-        //it_per_id->estimated_depth = -b / A;
-        //it_per_id->estimated_depth = svd_V[2] / svd_V[3];
-        // 得到的深度值实际上就是第一个观察到这个特征点的相机坐标系下的深度值
+        // it_per_id->estimated_depth = -b / A;
+        // it_per_id->estimated_depth = svd_V[2] / svd_V[3];
+        //  得到的深度值实际上就是第一个观察到这个特征点的相机坐标系下的深度值
         it_per_id.estimated_depth = svd_method;
-        //it_per_id->estimated_depth = INIT_DEPTH;
+        // it_per_id->estimated_depth = INIT_DEPTH;
 
         if (it_per_id.estimated_depth < 0.1)
         {
@@ -344,15 +344,6 @@ void FeatureManager::removeOutlier()
         }
     }
 }
-
-/**
- * @brief 
- * 
- * @param[in] marg_R  被移除的位姿
- * @param[in] marg_P 
- * @param[in] new_R    转接地图点的位姿
- * @param[in] new_P 
- */
 
 void FeatureManager::removeBackShiftDepth(Eigen::Matrix3d marg_R, Eigen::Vector3d marg_P, Eigen::Matrix3d new_R, Eigen::Vector3d new_P)
 {
@@ -393,10 +384,7 @@ void FeatureManager::removeBackShiftDepth(Eigen::Matrix3d marg_R, Eigen::Vector3
         */
     }
 }
-/**
- * @brief 这个还没初始化结束，因此相比刚才，不进行地图点新的深度的换算，因为此时还有进行视觉惯性对齐
- * 
- */
+
 void FeatureManager::removeBack()
 {
     for (auto it = feature.begin(), it_next = feature.begin();
@@ -440,9 +428,9 @@ void FeatureManager::removeFront(int frame_count)
 
 double FeatureManager::compensatedParallax2(const FeaturePerId &it_per_id, int frame_count)
 {
-    //check the second last frame is keyframe or not
-    //parallax betwwen seconde last frame and third last frame
-    // 找到相邻两帧
+    // check the second last frame is keyframe or not
+    // parallax betwwen seconde last frame and third last frame
+    //  找到相邻两帧
     const FeaturePerFrame &frame_i = it_per_id.feature_per_frame[frame_count - 2 - it_per_id.start_frame];
     const FeaturePerFrame &frame_j = it_per_id.feature_per_frame[frame_count - 1 - it_per_id.start_frame];
 
@@ -457,9 +445,9 @@ double FeatureManager::compensatedParallax2(const FeaturePerId &it_per_id, int f
     Vector3d p_i = frame_i.point;
     Vector3d p_i_comp;
 
-    //int r_i = frame_count - 2;
-    //int r_j = frame_count - 1;
-    //p_i_comp = ric[camera_id_j].transpose() * Rs[r_j].transpose() * Rs[r_i] * ric[camera_id_i] * p_i;
+    // int r_i = frame_count - 2;
+    // int r_j = frame_count - 1;
+    // p_i_comp = ric[camera_id_j].transpose() * Rs[r_j].transpose() * Rs[r_i] * ric[camera_id_i] * p_i;
     p_i_comp = p_i;
     double dep_i = p_i(2);
     double u_i = p_i(0) / dep_i;

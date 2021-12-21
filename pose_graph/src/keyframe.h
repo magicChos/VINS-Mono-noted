@@ -19,6 +19,7 @@ using namespace Eigen;
 using namespace std;
 using namespace DVision;
 
+// 构建Brief产生器，用于通过Brief模板文件对图像特征点计算Brief描述子
 class BriefExtractor
 {
 public:
@@ -38,18 +39,67 @@ public:
 	KeyFrame(double _time_stamp, int _index, Vector3d &_vio_T_w_i, Matrix3d &_vio_R_w_i, Vector3d &_T_w_i, Matrix3d &_R_w_i,
 			 cv::Mat &_image, int _loop_index, Eigen::Matrix<double, 8, 1> &_loop_info,
 			 vector<cv::KeyPoint> &_keypoints, vector<cv::KeyPoint> &_keypoints_norm, vector<BRIEF::bitset> &_brief_descriptors);
+
+	/**
+	 * @brief 寻找两帧之间联系，确定是否回环
+	 *
+	 * @param[in] old_kf
+	 * @return true
+	 * @return false
+	 */
 	bool findConnection(KeyFrame *old_kf);
 
+	/**
+	 * @brief 计算已有特征点的描述子
+	 * 70个点的描述
+	 *
+	 */
 	void computeWindowBRIEFPoint();
+
+	/**
+	 * @brief 额外提取fast特征点并计算描述子新的500个点
+	 *
+	 */
 	void computeBRIEFPoint();
-	// void extractBrief();
+
+	/**
+	 * @brief 計算兩個描述子的漢明距離
+	 *
+	 * @param a
+	 * @param b
+	 * @return int
+	 */
 	int HammingDis(const BRIEF::bitset &a, const BRIEF::bitset &b);
+
+	/**
+	 * @brief 暴力匹配法，通过遍历所有的候选描述子得到最佳匹配
+	 *
+	 * @param[in] window_descriptor 当前帧的一个描述子
+	 * @param[in] descriptors_old 回环帧的描述子集合
+	 * @param[in] keypoints_old 回环帧像素坐标集合
+	 * @param[in] keypoints_old_norm 回环帧归一化坐标集合
+	 * @param[out] best_match 最佳匹配的像素坐标
+	 * @param[out] best_match_norm 最佳匹配的归一化相机坐标
+	 * @return true
+	 * @return false
+	 */
 	bool searchInAera(const BRIEF::bitset window_descriptor,
 					  const std::vector<BRIEF::bitset> &descriptors_old,
 					  const std::vector<cv::KeyPoint> &keypoints_old,
 					  const std::vector<cv::KeyPoint> &keypoints_old_norm,
 					  cv::Point2f &best_match,
 					  cv::Point2f &best_match_norm);
+
+	/**
+	 * @brief 将当前帧的描述子依次和回环帧描述子进行匹配，得到匹配结果
+	 *
+	 * @param[out] matched_2d_old 匹配回环帧点的像素坐标集合
+	 * @param[out] matched_2d_old_norm 匹配回环帧点的归一化相机坐标集合
+	 * @param[out] status 状态位
+	 * @param[in] descriptors_old 回环帧的描述子集合
+	 * @param[in] keypoints_old 回环帧的像素坐标
+	 * @param[in] keypoints_old_norm 回环帧的归一化坐标
+	 */
 	void searchByBRIEFDes(std::vector<cv::Point2f> &matched_2d_old,
 						  std::vector<cv::Point2f> &matched_2d_old_norm,
 						  std::vector<uchar> &status,
@@ -70,6 +120,12 @@ public:
 	void updateLoop(Eigen::Matrix<double, 8, 1> &_loop_info);
 
 	Eigen::Vector3d getLoopRelativeT();
+
+	/**
+	 * @brief Get the Loop Relative Yaw object
+	 * 
+	 * @return double 
+	 */
 	double getLoopRelativeYaw();
 	Eigen::Quaterniond getLoopRelativeQ();
 
@@ -95,6 +151,8 @@ public:
 	vector<BRIEF::bitset> brief_descriptors;		// 额外提取的fast特征点的描述子
 	vector<BRIEF::bitset> window_brief_descriptors; // 原来光流追踪的特征点的描述子
 	bool has_fast_point;
+
+	// ?
 	int sequence;
 
 	bool has_loop;
