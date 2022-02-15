@@ -75,6 +75,16 @@ public:
 private:
 	bool solveFrameByPnP(Matrix3d &R_initial, Vector3d &P_initial, int i, vector<SFMFeature> &sfm_f);
 
+	/**
+	 * @brief 对特征点三角化  
+	 * https://blog.csdn.net/qq_41904635/article/details/106092472
+	 * @param[in] Pose0 两帧位姿
+	 * @param[in] Pose1
+	 * @param[in] point0 特征点在两帧下的观测
+	 * @param[in] point1
+	 * @param[out] point_3d 三角化结果
+	 * @test 测试一下其和opencv自带的triangulatePoint函数比较
+	 */
 	void triangulatePoint(Eigen::Matrix<double, 3, 4> &Pose0, Eigen::Matrix<double, 3, 4> &Pose1,
 						  Vector2d &point0, Vector2d &point1, Vector3d &point_3d);
 	void triangulateTwoFrames(int frame0, Eigen::Matrix<double, 3, 4> &Pose0,

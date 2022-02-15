@@ -18,6 +18,7 @@ std::condition_variable con;
 // 好像是记录上一帧Imu的时间戳
 double current_time = -1;
 queue<sensor_msgs::ImuConstPtr> imu_buf;
+// 记录前端光流跟踪的结果
 queue<sensor_msgs::PointCloudConstPtr> feature_buf;
 queue<sensor_msgs::PointCloudConstPtr> relo_buf;
 int sum_of_wait = 0;
@@ -52,7 +53,7 @@ double last_imu_t = 0;
 
 /**
  * @brief 根据当前imu数据预测当前位姿
- *
+ * 更新全局变量tmpP、tmpV、tmpQ
  * @param[in] imu_msg
  */
 void predict(const sensor_msgs::ImuConstPtr &imu_msg)
@@ -264,6 +265,9 @@ void process()
     while (true) // 这个线程是会一直循环下去
     {
         // pair中记录的是imu数据和对应的特征点数据
+        // typedef std::vector<sensor_msgs::ImuConstPtr> IMUDATA
+        // typedef sensor_msgs::PointCloudConstPtr FEATUREDATA
+        // std::vector<std::pair<IMUDATA , FEATUREDATA>> measurements
         std::vector<std::pair<std::vector<sensor_msgs::ImuConstPtr>, sensor_msgs::PointCloudConstPtr>> measurements;
         std::unique_lock<std::mutex> lk(m_buf);
         con.wait(lk, [&]
@@ -357,11 +361,12 @@ void process()
             ROS_DEBUG("processing vision data with stamp %f \n", img_msg->header.stamp.toSec());
 
             TicToc t_s;
+            
             // 特征点id->特征点信息
             // 表示当前帧跟踪到上一帧中的特征点集合，也就是当前帧观测到的所有的路标点（不包括在当前帧新提取的点）
             // map int: feature Id
             // pair int: camera Id
-            // pair value 7: x,y,z,u,v,ux,vx
+            // pair value 7: x,y,z,u,v,vx,vy
             map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> image;
             for (unsigned int i = 0; i < img_msg->points.size(); i++)
             {
@@ -370,17 +375,17 @@ void process()
                 int feature_id = v / NUM_OF_CAM;
                 int camera_id = v % NUM_OF_CAM;
                 // 去畸变后归一滑像素坐标
-                double x = img_msg->points[i].x; 
+                double x = img_msg->points[i].x;
                 double y = img_msg->points[i].y;
                 double z = img_msg->points[i].z;
                 // 特征点像素坐标
-                double p_u = img_msg->channels[1].values[i]; 
+                double p_u = img_msg->channels[1].values[i];
                 double p_v = img_msg->channels[2].values[i];
                 // 特征点速度
-                double velocity_x = img_msg->channels[3].values[i]; 
+                double velocity_x = img_msg->channels[3].values[i];
                 double velocity_y = img_msg->channels[4].values[i];
                 ROS_ASSERT(z == 1); // 检查是不是归一化
-                
+
                 Eigen::Matrix<double, 7, 1> xyz_uv_velocity;
                 xyz_uv_velocity << x, y, z, p_u, p_v, velocity_x, velocity_y;
                 image[feature_id].emplace_back(camera_id, xyz_uv_velocity);

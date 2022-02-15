@@ -143,6 +143,7 @@ public:
     vector<Vector3d> linear_acceleration_buf[(WINDOW_SIZE + 1)];
     vector<Vector3d> angular_velocity_buf[(WINDOW_SIZE + 1)];
 
+    // 统计帧的数量
     int frame_count;
     // 统计一种有多少次marg第一帧的情况
     int sum_of_back;

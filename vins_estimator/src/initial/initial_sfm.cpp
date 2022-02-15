@@ -2,16 +2,6 @@
 
 GlobalSFM::GlobalSFM() {}
 
-/**
- * @brief 对特征点三角化
- * 
- * @param[in] Pose0 两帧位姿
- * @param[in] Pose1 
- * @param[in] point0 特征点在两帧下的观测
- * @param[in] point1 
- * @param[out] point_3d 三角化结果
- */
-
 void GlobalSFM::triangulatePoint(Eigen::Matrix<double, 3, 4> &Pose0, Eigen::Matrix<double, 3, 4> &Pose1,
 								 Vector2d &point0, Vector2d &point1, Vector3d &point_3d)
 {
@@ -135,6 +125,7 @@ void GlobalSFM::triangulateTwoFrames(int frame0, Eigen::Matrix<double, 3, 4> &Po
 		}
 		if (has_0 && has_1) // 如果都能被看到
 		{
+			// 记录三角化后的三维点
 			Vector3d point_3d;
 			// 将这个特征点进行三角化
 			triangulatePoint(Pose0, Pose1, point0, point1, point_3d);
@@ -190,6 +181,7 @@ bool GlobalSFM::construct(int frame_num, Quaterniond *q, Vector3d *T, int l,
 	//rotate to cam frame
 	Matrix3d c_Rotation[frame_num];
 	Vector3d c_Translation[frame_num];
+
 	Quaterniond c_Quat[frame_num];
 	double c_rotation[frame_num][4];
 	double c_translation[frame_num][3];

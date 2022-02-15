@@ -299,6 +299,7 @@ bool Estimator::initialStructure()
             // return false;
         }
     }
+    
     // Step 2 global sfm
     // 做一个纯视觉slam
 

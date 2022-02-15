@@ -127,6 +127,8 @@ void img_callback(const sensor_msgs::ImageConstPtr &img_msg)
     if (PUB_THIS_FRAME)
     {
         pub_count++; // 计数器更新
+
+        // 记录归一化相机坐标系下的三维坐标
         sensor_msgs::PointCloudPtr feature_points(new sensor_msgs::PointCloud);
         sensor_msgs::ChannelFloat32 id_of_point;
         sensor_msgs::ChannelFloat32 u_of_point;
