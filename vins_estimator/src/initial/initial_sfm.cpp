@@ -86,15 +86,6 @@ bool GlobalSFM::solveFrameByPnP(Matrix3d &R_initial, Vector3d &P_initial, int i,
 	return true;
 }
 
-/**
- * @brief 根据两帧索引和位姿计算对应特征点的三角化位置，更新sfm_f.position
- * 
- * @param[in] frame0 
- * @param[in] Pose0 
- * @param[in] frame1 
- * @param[in] Pose1 
- * @param[in] sfm_f 
- */
 void GlobalSFM::triangulateTwoFrames(int frame0, Eigen::Matrix<double, 3, 4> &Pose0,
 									 int frame1, Eigen::Matrix<double, 3, 4> &Pose1,
 									 vector<SFMFeature> &sfm_f)
@@ -228,7 +219,7 @@ bool GlobalSFM::construct(int frame_num, Quaterniond *q, Vector3d *T, int l,
 		}
 
 		// triangulate point based on the solve pnp result
-		// 当前帧和最后一帧进行三角化处理
+		// 当前帧和最后一帧进行三角化处理，恢复路标3d坐标
 		triangulateTwoFrames(i, Pose[i], frame_num - 1, Pose[frame_num - 1], sfm_f);
 	}
 	// Step 2 考虑有些特征点不能被最后一帧看到，因此，fix枢纽帧，遍历枢纽帧到最后一帧进行特征点三角化

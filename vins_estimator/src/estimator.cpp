@@ -307,7 +307,7 @@ bool Estimator::initialStructure()
     Quaterniond Q[frame_count + 1];
     Vector3d T[frame_count + 1];
 
-    // 特征点坐标
+    // 存储SFM重建出特征点的坐标
     map<int, Vector3d> sfm_tracked_points;
 
     // 保存每个特征点的信息
@@ -315,7 +315,8 @@ bool Estimator::initialStructure()
     // 遍历所有的特征点，将结果保存到sfm_f
     for (auto &it_per_id : f_manager.feature)
     {
-        int imu_j = it_per_id.start_frame - 1; // 这个跟imu无关，就是存储观测特征点的帧的索引
+        // 第一次观测到特征点的帧数-1
+        int imu_j = it_per_id.start_frame - 1; 
 
         // 定义路标点临时对象
         SFMFeature tmp_feature;
@@ -327,8 +328,9 @@ bool Estimator::initialStructure()
         {
             // ?
             imu_j++;
+            // 3D特征点坐标
             Vector3d pts_j = it_per_frame.point;
-            // 索引以及各自坐标系下的坐标
+            // 所有观测到该特征点的图像帧id和图像坐标
             tmp_feature.observation.push_back(make_pair(imu_j, Eigen::Vector2d{pts_j.x(), pts_j.y()}));
         }
         sfm_f.push_back(tmp_feature);

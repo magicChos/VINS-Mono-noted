@@ -21,7 +21,7 @@ struct SFMFeature
 	int id;
 	// 记录所有观测到该特征点的图像帧ID和图像坐标
 	vector<pair<int, Vector2d>> observation;
-	// 3d坐标
+	// 路标3d坐标
 	double position[3];
 	// 深度
 	double depth;
@@ -76,7 +76,7 @@ private:
 	bool solveFrameByPnP(Matrix3d &R_initial, Vector3d &P_initial, int i, vector<SFMFeature> &sfm_f);
 
 	/**
-	 * @brief 对特征点三角化  
+	 * @brief 对特征点三角化
 	 * https://blog.csdn.net/qq_41904635/article/details/106092472
 	 * @param[in] Pose0 两帧位姿
 	 * @param[in] Pose1
@@ -87,6 +87,16 @@ private:
 	 */
 	void triangulatePoint(Eigen::Matrix<double, 3, 4> &Pose0, Eigen::Matrix<double, 3, 4> &Pose1,
 						  Vector2d &point0, Vector2d &point1, Vector3d &point_3d);
+
+	/**
+	 * @brief 根据两帧索引和位姿计算对应特征点的三角化位置，更新sfm_f.position，三角化frame0和frame1间所有对应点
+	 * 
+	 * @param[in] frame0	帧索引
+	 * @param[in] Pose0		位姿数据
+	 * @param[in] frame1
+	 * @param[in] Pose1
+	 * @param[in] sfm_f
+	 */
 	void triangulateTwoFrames(int frame0, Eigen::Matrix<double, 3, 4> &Pose0,
 							  int frame1, Eigen::Matrix<double, 3, 4> &Pose1,
 							  vector<SFMFeature> &sfm_f);

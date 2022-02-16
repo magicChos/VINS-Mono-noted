@@ -190,7 +190,7 @@ namespace cv {
 }
 
 /**
- * @brief 根据两帧匹配对求解R和带尺度的t
+ * @brief 根据两帧匹配对求解R和带尺度的t（利用五点法求解相机的初始位姿）
  * @param[in] corres 
  * @param[out] Rotation 
  * @param[out] Translation 
