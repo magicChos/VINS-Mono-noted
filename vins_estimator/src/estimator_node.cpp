@@ -289,7 +289,7 @@ void process()
                 double t = imu_msg->header.stamp.toSec();
                 // 当前图片的时间戳
                 double img_t = img_msg->header.stamp.toSec() + estimator.td;
-                if (t <= img_t)
+                if (t <= img_t) // 当前图片前一时刻的imu
                 {
                     if (current_time < 0)
                         current_time = t;
@@ -325,7 +325,7 @@ void process()
                     estimator.processIMU(dt_1, Vector3d(dx, dy, dz), Vector3d(rx, ry, rz));
                     // printf("dimu: dt:%f a: %f %f %f w: %f %f %f\n",dt_1, dx, dy, dz, rx, ry, rz);
                 }
-            }
+            } // 结束遍历imu
             // set relocalization frame
             // 回环相关部分
 
@@ -409,6 +409,8 @@ void process()
             // ROS_ERROR("end: %f, at %f", img_msg->header.stamp.toSec(), ros::Time::now().toSec());
         }
         m_estimator.unlock();
+
+
         m_buf.lock();
         m_state.lock();
         if (estimator.solver_flag == Estimator::SolverFlag::NON_LINEAR)

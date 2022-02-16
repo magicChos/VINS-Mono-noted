@@ -299,7 +299,7 @@ bool Estimator::initialStructure()
             // return false;
         }
     }
-    
+
     // Step 2 global sfm
     // 做一个纯视觉slam
 
@@ -1331,11 +1331,11 @@ void Estimator::slideWindowOld()
 /**
  * @brief 接受回环帧的消息
  *
- * @param[in] _frame_stamp
- * @param[in] _frame_index
- * @param[in] _match_points
- * @param[in] _relo_t
- * @param[in] _relo_r
+ * @param[in] _frame_stamp      回环帧时间戳
+ * @param[in] _frame_index      回环帧索引
+ * @param[in] _match_points     记录回环帧中的所有特征点的归一化坐标
+ * @param[in] _relo_t           回环帧的平移
+ * @param[in] _relo_r           回环帧的旋转位姿
  */
 void Estimator::setReloFrame(double _frame_stamp, int _frame_index, vector<Vector3d> &_match_points, Vector3d _relo_t, Matrix3d _relo_r)
 {
