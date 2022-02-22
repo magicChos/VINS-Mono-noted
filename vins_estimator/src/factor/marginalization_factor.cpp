@@ -82,7 +82,6 @@ MarginalizationInfo::~MarginalizationInfo()
 
     for (int i = 0; i < (int)factors.size(); i++)
     {
-
         delete[] factors[i]->raw_jacobians;
 
         delete factors[i]->cost_function;
@@ -128,7 +127,7 @@ void MarginalizationInfo::preMarginalize()
     for (auto it : factors)
     {
         // 调用这个接口计算各个残差块的残差和雅克比矩阵
-        it->Evaluate(); 
+        it->Evaluate();
 
         std::vector<int> block_sizes = it->cost_function->parameter_block_sizes(); // 得到每个残差块的参数块大小
         for (int i = 0; i < static_cast<int>(block_sizes.size()); i++)
@@ -377,7 +376,8 @@ std::vector<double *> MarginalizationInfo::getParameterBlocks(std::unordered_map
  *
  * @param[in] _marginalization_info
  */
-MarginalizationFactor::MarginalizationFactor(MarginalizationInfo *_marginalization_info) : marginalization_info(_marginalization_info)
+MarginalizationFactor::MarginalizationFactor(MarginalizationInfo *_marginalization_info) :
+    marginalization_info(_marginalization_info)
 {
     int cnt = 0;
     for (auto it : marginalization_info->keep_block_size) // keep_block_size表示上一次边缘化留下来的参数块的大小
@@ -438,7 +438,6 @@ bool MarginalizationFactor::Evaluate(double const *const *parameters, double *re
     Eigen::Map<Eigen::VectorXd>(residuals, n) = marginalization_info->linearized_residuals + marginalization_info->linearized_jacobians * dx;
     if (jacobians)
     {
-
         for (int i = 0; i < static_cast<int>(marginalization_info->keep_block_size.size()); i++)
         {
             if (jacobians[i])

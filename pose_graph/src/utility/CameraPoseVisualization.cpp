@@ -16,8 +16,8 @@ void Eigen2Point(const Eigen::Vector3d &v, geometry_msgs::Point &p)
     p.z = v.z();
 }
 
-CameraPoseVisualization::CameraPoseVisualization(float r, float g, float b, float a)
-    : m_marker_ns("CameraPoseVisualization"), m_scale(0.2), m_line_width(0.01)
+CameraPoseVisualization::CameraPoseVisualization(float r, float g, float b, float a) :
+    m_marker_ns("CameraPoseVisualization"), m_scale(0.2), m_line_width(0.01)
 {
     m_image_boundary_color.r = r;
     m_image_boundary_color.g = g;

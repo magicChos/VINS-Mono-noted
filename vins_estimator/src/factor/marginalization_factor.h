@@ -13,11 +13,10 @@
 const int NUM_THREADS = 4;
 
 // 残差类，将不同的损失函数以及优化变量统一起来再一起添加到marginalization_info中
-struct ResidualBlockInfo
-{
+struct ResidualBlockInfo {
     // 构造函数需要，cost function（约束），loss function：残差的计算方式，相关联的参数块，待边缘化的参数块的索引
-    ResidualBlockInfo(ceres::CostFunction *_cost_function, ceres::LossFunction *_loss_function, std::vector<double *> _parameter_blocks, std::vector<int> _drop_set)
-        : cost_function(_cost_function), loss_function(_loss_function), parameter_blocks(_parameter_blocks), drop_set(_drop_set) {}
+    ResidualBlockInfo(ceres::CostFunction *_cost_function, ceres::LossFunction *_loss_function, std::vector<double *> _parameter_blocks, std::vector<int> _drop_set) :
+        cost_function(_cost_function), loss_function(_loss_function), parameter_blocks(_parameter_blocks), drop_set(_drop_set) {}
 
     void Evaluate();
 
@@ -39,19 +38,18 @@ struct ResidualBlockInfo
     }
 };
 
-struct ThreadsStruct
-{
+struct ThreadsStruct {
     // 所有观测项
     std::vector<ResidualBlockInfo *> sub_factors;
     Eigen::MatrixXd A;
     Eigen::VectorXd b;
     std::unordered_map<long, int> parameter_block_size; //global size
-    std::unordered_map<long, int> parameter_block_idx; //local size
+    std::unordered_map<long, int> parameter_block_idx;  //local size
 };
 
 class MarginalizationInfo
 {
-  public:
+public:
     ~MarginalizationInfo();
     int localSize(int size) const;
     int globalSize(int size) const;
@@ -90,11 +88,11 @@ class MarginalizationInfo
     // < 优化变量内存地址，在矩阵中的id>
     std::unordered_map<long, int> parameter_block_idx; //local size // 地址->参数排列的顺序idx
     // < 优化变量内存地址，优化变量对应的数据指针>
-    std::unordered_map<long, double *> parameter_block_data;    // 地址->参数块实际内容的地址
+    std::unordered_map<long, double *> parameter_block_data; // 地址->参数块实际内容的地址
 
     // 进行边缘化之后保留下来的各个优化变量的长度
     std::vector<int> keep_block_size;
-    std::vector<int> keep_block_idx;  //local size
+    std::vector<int> keep_block_idx; //local size
     std::vector<double *> keep_block_data;
 
     // 的是边缘化之后从信息矩阵H恢复出来雅克比矩阵
@@ -102,14 +100,14 @@ class MarginalizationInfo
     // 边缘化得到的残差
     Eigen::VectorXd linearized_residuals;
     const double eps = 1e-8;
-
 };
 
 // 由于边缘化的costfuntion不是固定大小的，因此只能继承最基本的类
 class MarginalizationFactor : public ceres::CostFunction
 {
-  public:
-    MarginalizationFactor(MarginalizationInfo* _marginalization_info);
+public:
+    MarginalizationFactor(MarginalizationInfo *_marginalization_info);
+
     /**
      * @brief 输出各项残差以及残差对应各优化变量的Jacobian
      * 
@@ -121,5 +119,5 @@ class MarginalizationFactor : public ceres::CostFunction
      */
     virtual bool Evaluate(double const *const *parameters, double *residuals, double **jacobians) const;
 
-    MarginalizationInfo* marginalization_info;
+    MarginalizationInfo *marginalization_info;
 };

@@ -1,26 +1,26 @@
-#include <vector>
-#include <ros/ros.h>
-#include <nav_msgs/Odometry.h>
-#include <nav_msgs/Path.h>
-#include <sensor_msgs/PointCloud.h>
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/image_encodings.h>
-#include <visualization_msgs/Marker.h>
-#include <std_msgs/Bool.h>
-#include <cv_bridge/cv_bridge.h>
-#include <iostream>
-#include <ros/package.h>
-#include <mutex>
-#include <queue>
-#include <thread>
-#include <eigen3/Eigen/Dense>
-#include <opencv2/opencv.hpp>
-#include <opencv2/core/eigen.hpp>
 #include "keyframe.h"
-#include "utility/tic_toc.h"
+#include "parameters.h"
 #include "pose_graph.h"
 #include "utility/CameraPoseVisualization.h"
-#include "parameters.h"
+#include "utility/tic_toc.h"
+#include <cv_bridge/cv_bridge.h>
+#include <eigen3/Eigen/Dense>
+#include <iostream>
+#include <mutex>
+#include <nav_msgs/Odometry.h>
+#include <nav_msgs/Path.h>
+#include <opencv2/core/eigen.hpp>
+#include <opencv2/opencv.hpp>
+#include <queue>
+#include <ros/package.h>
+#include <ros/ros.h>
+#include <sensor_msgs/Image.h>
+#include <sensor_msgs/PointCloud.h>
+#include <sensor_msgs/image_encodings.h>
+#include <std_msgs/Bool.h>
+#include <thread>
+#include <vector>
+#include <visualization_msgs/Marker.h>
 #define SKIP_FIRST_CNT 10
 using namespace std;
 
@@ -84,7 +84,8 @@ void new_sequence()
     printf("sequence cnt %d \n", sequence);
     if (sequence > 5)
     {
-        ROS_WARN("only support 5 sequences since it's boring to copy code for more sequences.");
+        ROS_WARN("only support 5 sequences since it's boring to copy code for more "
+                 "sequences.");
         ROS_BREAK();
     }
     posegraph.posegraph_visualization->reset();
@@ -136,15 +137,14 @@ void point_callback(const sensor_msgs::PointCloudConstPtr &point_msg)
     point_buf.push(point_msg);
     m_buf.unlock();
     /*
-    for (unsigned int i = 0; i < point_msg->points.size(); i++)
-    {
-        printf("%d, 3D point: %f, %f, %f 2D point %f, %f \n",i , point_msg->points[i].x,
-                                                     point_msg->points[i].y,
-                                                     point_msg->points[i].z,
-                                                     point_msg->channels[i].values[0],
-                                                     point_msg->channels[i].values[1]);
-    }
-    */
+  for (unsigned int i = 0; i < point_msg->points.size(); i++)
+  {
+      printf("%d, 3D point: %f, %f, %f 2D point %f, %f \n",i ,
+  point_msg->points[i].x, point_msg->points[i].y, point_msg->points[i].z,
+                                                   point_msg->channels[i].values[0],
+                                                   point_msg->channels[i].values[1]);
+  }
+  */
 }
 /**
  * @brief VIO结点KF的信息
@@ -161,18 +161,18 @@ void pose_callback(const nav_msgs::Odometry::ConstPtr &pose_msg)
     pose_buf.push(pose_msg);
     m_buf.unlock();
     /*
-    printf("pose t: %f, %f, %f   q: %f, %f, %f %f \n", pose_msg->pose.pose.position.x,
-                                                       pose_msg->pose.pose.position.y,
-                                                       pose_msg->pose.pose.position.z,
-                                                       pose_msg->pose.pose.orientation.w,
-                                                       pose_msg->pose.pose.orientation.x,
-                                                       pose_msg->pose.pose.orientation.y,
-                                                       pose_msg->pose.pose.orientation.z);
-    */
+  printf("pose t: %f, %f, %f   q: %f, %f, %f %f \n",
+  pose_msg->pose.pose.position.x, pose_msg->pose.pose.position.y,
+                                                     pose_msg->pose.pose.position.z,
+                                                     pose_msg->pose.pose.orientation.w,
+                                                     pose_msg->pose.pose.orientation.x,
+                                                     pose_msg->pose.pose.orientation.y,
+                                                     pose_msg->pose.pose.orientation.z);
+  */
 }
 
 /**
- * @brief 发布经过回环修正后的最新的位姿
+ * @brief 接收经过回环修正后的最新的位姿
  *
  * @param[in] forward_msg
  */
@@ -180,7 +180,12 @@ void imu_forward_callback(const nav_msgs::Odometry::ConstPtr &forward_msg)
 {
     if (VISUALIZE_IMU_FORWARD)
     {
-        Vector3d vio_t(forward_msg->pose.pose.position.x, forward_msg->pose.pose.position.y, forward_msg->pose.pose.position.z);
+        // 世界坐标系下的平移
+        Vector3d vio_t(forward_msg->pose.pose.position.x,
+                       forward_msg->pose.pose.position.y,
+                       forward_msg->pose.pose.position.z);
+
+        // 世界坐标系下旋转矩阵
         Quaterniond vio_q;
         vio_q.w() = forward_msg->pose.pose.orientation.w;
         vio_q.x() = forward_msg->pose.pose.orientation.x;
@@ -193,9 +198,11 @@ void imu_forward_callback(const nav_msgs::Odometry::ConstPtr &forward_msg)
         vio_t = posegraph.r_drift * vio_t + posegraph.t_drift;
         vio_q = posegraph.r_drift * vio_q;
 
+        // 相机位姿
         Vector3d vio_t_cam;
         Quaterniond vio_q_cam;
         vio_t_cam = vio_t + vio_q * tic;
+        // qic代表的是相机坐标系到imu坐标系变换
         vio_q_cam = vio_q * qic;
 
         cameraposevisual.reset();
@@ -208,9 +215,9 @@ void relo_relative_pose_callback(const nav_msgs::Odometry::ConstPtr &pose_msg)
 {
     // T_loop_cur
     // 当前帧和闭环帧的相对位移
-    Vector3d relative_t = Vector3d(pose_msg->pose.pose.position.x,
-                                   pose_msg->pose.pose.position.y,
-                                   pose_msg->pose.pose.position.z);
+    Vector3d relative_t =
+        Vector3d(pose_msg->pose.pose.position.x, pose_msg->pose.pose.position.y,
+                 pose_msg->pose.pose.position.z);
     // 相对旋转
     Quaterniond relative_q;
     relative_q.w() = pose_msg->pose.pose.orientation.w;
@@ -221,9 +228,8 @@ void relo_relative_pose_callback(const nav_msgs::Odometry::ConstPtr &pose_msg)
     int index = pose_msg->twist.twist.linear.y; // 当前帧的idx
     // printf("receive index %d \n", index );
     Eigen::Matrix<double, 8, 1> loop_info;
-    loop_info << relative_t.x(), relative_t.y(), relative_t.z(),
-        relative_q.w(), relative_q.x(), relative_q.y(), relative_q.z(),
-        relative_yaw;
+    loop_info << relative_t.x(), relative_t.y(), relative_t.z(), relative_q.w(),
+        relative_q.x(), relative_q.y(), relative_q.z(), relative_yaw;
     posegraph.updateKeyFrameLoop(index, loop_info);
 }
 
@@ -232,7 +238,8 @@ void relo_relative_pose_callback(const nav_msgs::Odometry::ConstPtr &pose_msg)
 void vio_callback(const nav_msgs::Odometry::ConstPtr &pose_msg)
 {
     // ROS_INFO("vio_callback!");
-    Vector3d vio_t(pose_msg->pose.pose.position.x, pose_msg->pose.pose.position.y, pose_msg->pose.pose.position.z);
+    Vector3d vio_t(pose_msg->pose.pose.position.x, pose_msg->pose.pose.position.y,
+                   pose_msg->pose.pose.position.z);
     Quaterniond vio_q;
     vio_q.w() = pose_msg->pose.pose.orientation.w;
     vio_q.x() = pose_msg->pose.pose.orientation.x;
@@ -317,8 +324,7 @@ void vio_callback(const nav_msgs::Odometry::ConstPtr &pose_msg)
 void extrinsic_callback(const nav_msgs::Odometry::ConstPtr &pose_msg)
 {
     m_process.lock();
-    tic = Vector3d(pose_msg->pose.pose.position.x,
-                   pose_msg->pose.pose.position.y,
+    tic = Vector3d(pose_msg->pose.pose.position.x, pose_msg->pose.pose.position.y,
                    pose_msg->pose.pose.position.z);
     qic = Quaterniond(pose_msg->pose.pose.orientation.w,
                       pose_msg->pose.pose.orientation.x,
@@ -413,7 +419,8 @@ void process()
                 ptr = cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::MONO8);
             }
             else
-                ptr = cv_bridge::toCvCopy(image_msg, sensor_msgs::image_encodings::MONO8);
+                ptr =
+                    cv_bridge::toCvCopy(image_msg, sensor_msgs::image_encodings::MONO8);
 
             cv::Mat image = ptr->image;
             // build keyframe
@@ -456,8 +463,9 @@ void process()
                     // printf("u %f, v %f \n", p_2d_uv.x, p_2d_uv.y);
                 }
                 // 创建回环检测节点的KF
-                KeyFrame *keyframe = new KeyFrame(pose_msg->header.stamp.toSec(), frame_index, T, R, image,
-                                                  point_3d, point_2d_uv, point_2d_normal, point_id, sequence);
+                KeyFrame *keyframe = new KeyFrame(
+                    pose_msg->header.stamp.toSec(), frame_index, T, R, image, point_3d,
+                    point_2d_uv, point_2d_normal, point_id, sequence);
                 m_process.lock();
                 start_flag = 1;
                 posegraph.addKeyFrame(keyframe, 1); // 回环检测核心入口函数
@@ -485,7 +493,8 @@ void command()
             m_process.lock();
             posegraph.savePoseGraph();
             m_process.unlock();
-            printf("save pose graph finish\nyou can set 'load_previous_pose_graph' to 1 in the config file to reuse it next time\n");
+            printf("save pose graph finish\nyou can set 'load_previous_pose_graph' "
+                   "to 1 in the config file to reuse it next time\n");
             // printf("program shutting down...\n");
             // ros::shutdown();
         }
@@ -504,7 +513,8 @@ int main(int argc, char **argv)
     posegraph.registerPub(n);
 
     // read param
-    n.getParam("visualization_shift_x", VISUALIZATION_SHIFT_X); // 这两个shift基本都是0
+    n.getParam("visualization_shift_x",
+               VISUALIZATION_SHIFT_X); // 这两个shift基本都是0
     n.getParam("visualization_shift_y", VISUALIZATION_SHIFT_Y);
     n.getParam("skip_cnt", SKIP_CNT); // 跳过前SKIP_CNT帧
     n.getParam("skip_dis", SKIP_DIS); // 两帧距离门限
@@ -529,14 +539,17 @@ int main(int argc, char **argv)
         ROW = fsSettings["image_height"]; // 图片分辨率
         COL = fsSettings["image_width"];
         std::string pkg_path = ros::package::getPath("pose_graph");
-        string vocabulary_file = pkg_path + "/../support_files/brief_k10L6.bin"; // 训练好的二进制词袋的路径
+        string vocabulary_file =
+            pkg_path + "/../support_files/brief_k10L6.bin"; // 训练好的二进制词袋的路径
         cout << "vocabulary_file" << vocabulary_file << endl;
         posegraph.loadVocabulary(vocabulary_file); // 加载二进制词袋
 
-        BRIEF_PATTERN_FILE = pkg_path + "/../support_files/brief_pattern.yml"; // 计算描述子pattern的文件
+        BRIEF_PATTERN_FILE =
+            pkg_path + "/../support_files/brief_pattern.yml"; // 计算描述子pattern的文件
         cout << "BRIEF_PATTERN_FILE" << BRIEF_PATTERN_FILE << endl;
         // 和前面一样，生成一个相机模型
-        m_camera = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(config_file.c_str());
+        m_camera = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(
+            config_file.c_str());
 
         fsSettings["image_topic"] >> IMAGE_TOPIC; // 原图的topic
         fsSettings["pose_graph_save_path"] >> POSE_GRAPH_SAVE_PATH;
@@ -547,9 +560,12 @@ int main(int argc, char **argv)
         FileSystemHelper::createDirectoryIfNotExists(POSE_GRAPH_SAVE_PATH.c_str());
         FileSystemHelper::createDirectoryIfNotExists(VINS_RESULT_PATH.c_str());
 
-        VISUALIZE_IMU_FORWARD = fsSettings["visualize_imu_forward"];       // 可视化是否使用imu进行前推
-        LOAD_PREVIOUS_POSE_GRAPH = fsSettings["load_previous_pose_graph"]; // 是否加载已有地图
-        FAST_RELOCALIZATION = fsSettings["fast_relocalization"];           // 是否快速重定位，这个和VIO结点有交互
+        VISUALIZE_IMU_FORWARD =
+            fsSettings["visualize_imu_forward"]; // 可视化是否使用imu进行前推
+        LOAD_PREVIOUS_POSE_GRAPH =
+            fsSettings["load_previous_pose_graph"]; // 是否加载已有地图
+        FAST_RELOCALIZATION = fsSettings
+            ["fast_relocalization"]; // 是否快速重定位，这个和VIO结点有交互
         // vins结果保存路径
         VINS_RESULT_PATH = VINS_RESULT_PATH + "/vins_result_loop.csv";
         std::ofstream fout(VINS_RESULT_PATH, std::ios::out);
@@ -574,17 +590,25 @@ int main(int argc, char **argv)
 
     fsSettings.release();
 
-    ros::Subscriber sub_imu_forward = n.subscribe("/vins_estimator/imu_propagate", 2000, imu_forward_callback);
-    ros::Subscriber sub_vio = n.subscribe("/vins_estimator/odometry", 2000, vio_callback);
+    ros::Subscriber sub_imu_forward =
+        n.subscribe("/vins_estimator/imu_propagate", 2000, imu_forward_callback);
+    ros::Subscriber sub_vio =
+        n.subscribe("/vins_estimator/odometry", 2000, vio_callback);
     ros::Subscriber sub_image = n.subscribe(IMAGE_TOPIC, 2000, image_callback);
-    ros::Subscriber sub_pose = n.subscribe("/vins_estimator/keyframe_pose", 2000, pose_callback);
-    ros::Subscriber sub_extrinsic = n.subscribe("/vins_estimator/extrinsic", 2000, extrinsic_callback);
-    ros::Subscriber sub_point = n.subscribe("/vins_estimator/keyframe_point", 2000, point_callback);
-    ros::Subscriber sub_relo_relative_pose = n.subscribe("/vins_estimator/relo_relative_pose", 2000, relo_relative_pose_callback);
+    ros::Subscriber sub_pose =
+        n.subscribe("/vins_estimator/keyframe_pose", 2000, pose_callback);
+    ros::Subscriber sub_extrinsic =
+        n.subscribe("/vins_estimator/extrinsic", 2000, extrinsic_callback);
+    ros::Subscriber sub_point =
+        n.subscribe("/vins_estimator/keyframe_point", 2000, point_callback);
+    ros::Subscriber sub_relo_relative_pose = n.subscribe(
+        "/vins_estimator/relo_relative_pose", 2000, relo_relative_pose_callback);
 
     pub_match_img = n.advertise<sensor_msgs::Image>("match_image", 1000);
-    pub_camera_pose_visual = n.advertise<visualization_msgs::MarkerArray>("camera_pose_visual", 1000);
-    pub_key_odometrys = n.advertise<visualization_msgs::Marker>("key_odometrys", 1000);
+    pub_camera_pose_visual =
+        n.advertise<visualization_msgs::MarkerArray>("camera_pose_visual", 1000);
+    pub_key_odometrys =
+        n.advertise<visualization_msgs::Marker>("key_odometrys", 1000);
     pub_vio_path = n.advertise<nav_msgs::Path>("no_loop_path", 1000);
     pub_match_points = n.advertise<sensor_msgs::PointCloud>("match_points", 100);
 

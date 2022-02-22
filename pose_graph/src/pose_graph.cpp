@@ -544,12 +544,13 @@ void PoseGraph::optimize4DoF()
                     if (i - j >= 0 && sequence_array[i] == sequence_array[i - j])
                     {
                         // 计算T_i-j_w * T_w_i = T_i-j_i
+
+                        // 第i-j帧在世界坐标系下的位姿（欧拉角）
                         Vector3d euler_conncected = Utility::R2ypr(q_array[i - j].toRotationMatrix());
                         Vector3d relative_t(t_array[i][0] - t_array[i - j][0], t_array[i][1] - t_array[i - j][1], t_array[i][2] - t_array[i - j][2]);
                         relative_t = q_array[i - j].inverse() * relative_t;
                         double relative_yaw = euler_array[i][0] - euler_array[i - j][0];
-                        ceres::CostFunction *cost_function = FourDOFError::Create(relative_t.x(), relative_t.y(), relative_t.z(),
-                                                                                  relative_yaw, euler_conncected.y(), euler_conncected.z());
+                        ceres::CostFunction *cost_function = FourDOFError::Create(relative_t.x(), relative_t.y(), relative_t.z(), relative_yaw, euler_conncected.y(), euler_conncected.z());
                         // 对i-j帧和第i帧都成约束
                         problem.AddResidualBlock(cost_function, NULL, euler_array[i - j],
                                                  t_array[i - j],
@@ -750,7 +751,6 @@ void PoseGraph::updatePath()
         {
             if ((*it)->has_loop && (*it)->sequence == sequence_cnt)
             {
-
                 KeyFrame *connected_KF = getKeyFrame((*it)->loop_index);
                 Vector3d connected_P;
                 Matrix3d connected_R;
@@ -869,7 +869,8 @@ void PoseGraph::loadPoseGraph()
                   &loop_index,
                   &loop_info_0, &loop_info_1, &loop_info_2, &loop_info_3,
                   &loop_info_4, &loop_info_5, &loop_info_6, &loop_info_7,
-                  &keypoints_num) != EOF)
+                  &keypoints_num)
+           != EOF)
     {
         /*
         printf("I read: %d %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %d %lf %lf %lf %lf %lf %lf %lf %lf %d\n", index, time_stamp,
